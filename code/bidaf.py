@@ -52,43 +52,42 @@ class BidirectionalAttention(object):
 
             # 1. compute w x C
             W1 = tf.get_variable("w_sim_1", shape=[h, 1])
-            C = tf.expand_dims(contexts, axis=1)    # shape = b x 1 x N x h
+            C = tf.expand_dims(contexts, axis=2)    # shape = b x N x 1 x h
             C = tf.reshape(C, [-1, h])
             S1 = tf.matmul(C, W1)
-            S1 = tf.reshape(S1, [-1, 1, N]) # shape = b x 1 x N
+            S1 = tf.reshape(S1, [-1, N, 1]) # shape = b x N x 1
 
             # 2. compute w x Q
             W2 = tf.get_variable("w_sim_2", shape=[h, 1])
-            Q = tf.expand_dims(questions, axis=2)   # shape = b x M x 1 x h
+            Q = tf.expand_dims(questions, axis=1)   # shape = b x 1 x M x h
             Q = tf.reshape(Q, [-1, h])
             S2 = tf.matmul(Q, W2)
-            S2 = tf.reshape(S2, [-1, M, 1]) # shape = b x M x 1
+            S2 = tf.reshape(S2, [-1, 1, M]) # shape = b x 1 x M
 
             # 2. generate c_i o q_j in matrix form
             # Use broadcasting tf.multiply([b, M, 1, h], [b, 1, N, h]) == [b, M, N, h]
             W3 = tf.get_variable("w_sim_3", shape=[h, 1])
-            C_o_Q = tf.multiply(tf.expand_dims(contexts, axis=2), tf.expand_dims(questions, axis=1)) # shape = b x M x N x h
+            C_o_Q = tf.multiply(tf.expand_dims(contexts, axis=1), tf.expand_dims(questions, axis=2)) # shape = b x N x M x h
             C_o_Q = tf.reshape(C_o_Q, [-1, h])
             S3 = tf.matmul(C_o_Q, W3)
-            S3 = tf.reshape(S3, [-1, M, N]) # shape = b x M x N
+            S3 = tf.reshape(S3, [-1, N, M]) # shape = b x N x M
 
             # 3. Use broadcasting to add them up to get S
-            S = S1 + S2 + S3    # shape = b x M x N
+            S = S1 + S2 + S3    # shape = b x N x M
 
-            import pdb; pdb.set_trace()
 
             # Perform Context-to-Question C2Q attention
-            alpha = tf.nn.softmax(S, dim=2) # shape = b x M x N
-            alpha_t = tf.transpose(alpha, perm=[0, 2, 1])   # shape = b x N x M
-            A = tf.matmul(alpha_t, questions)   # shape = b x N x 2h
+            alpha = tf.nn.softmax(S, dim=2) # shape = b x N x M
+            A = tf.matmul(alpha, questions)   # shape = b x N x 2h
 
             # Perform Question-to-Context Q2C attention
             m = tf.reduce_max(S, axis=2, keep_dims=True)    # shape = b x N x 1
-            beta = tf.nn.softmax(m, dim=2)  # shape = b x N x 1
+            beta = tf.nn.softmax(m, dim=1)  # shape = b x N x 1
             beta_t = tf.transpose(beta, perm=[0, 2, 1]) # shape = b x 1 x N
-            c = tf.matmul(beta, contexts)   # shape = b x 1 x 2h
+            c = tf.matmul(beta_t, contexts)   # shape = b x 1 x h
 
-            output = tf.concat([contexts, A, c], axis=2)
+            c_tiled = tf.tile(c, [1, N, 1])
+            output = tf.concat([contexts, A, c_tiled], axis=2)  # shape = b x N x 3h
 
             # Apply dropout
             output = tf.nn.dropout(output, self.keep_prob)

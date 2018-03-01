@@ -31,6 +31,7 @@ from evaluate import exact_match_score, f1_score
 from data_batcher import get_batch_generator
 from pretty_print import print_example
 from modules import RNNEncoder, SimpleSoftmaxLayer, BasicAttn
+from bidaf import BidirectionalAttention
 
 logging.basicConfig(level=logging.INFO)
 
@@ -135,10 +136,9 @@ class QAModel(object):
         encoder = RNNEncoder(self.FLAGS.hidden_size, self.keep_prob)
         context_hiddens = encoder.build_graph(self.context_embs, self.context_mask) # (batch_size, context_len, hidden_size*2)
         question_hiddens = encoder.build_graph(self.qn_embs, self.qn_mask) # (batch_size, question_len, hidden_size*2)
-        pdb.set_trace()
 
         # Use context hidden states to attend to question hidden states
-        attn_layer = BasicAttn(self.keep_prob, self.FLAGS.hidden_size*2, self.FLAGS.hidden_size*2)
+        attn_layer = BidirectionalAttention(self.keep_prob, self.FLAGS.hidden_size*2, self.FLAGS.hidden_size*2)
         _, attn_output = attn_layer.build_graph(question_hiddens, self.qn_mask, context_hiddens) # attn_output is shape (batch_size, context_len, hidden_size*2)
 
         # Concat attn_output to context_hiddens to get blended_reps
