@@ -89,8 +89,8 @@ def padded(token_batch, batch_pad=0):
       List (length batch_size) of padded of lists of ints.
         All are same length - batch_pad if batch_pad!=0, otherwise the maximum length in token_batch
     """
-    maxlen = max(map(lambda x: len(x), token_batch)) if batch_pad == 0 else batch_pad
-    return map(lambda token_list: token_list + [PAD_ID] * (maxlen - len(token_list)), token_batch)
+    maxlen = max(list(map(lambda x: len(x), token_batch))) if batch_pad == 0 else batch_pad
+    return list(map(lambda token_list: token_list + [PAD_ID] * (maxlen - len(token_list)), token_batch))
 
 
 def refill_batches(batches, word2id, context_file, qn_file, ans_file, batch_size, context_len, question_len, discard_long):
@@ -106,7 +106,7 @@ def refill_batches(batches, word2id, context_file, qn_file, ans_file, batch_size
       discard_long: If True, discard any examples that are longer than context_len or question_len.
         If False, truncate those exmaples instead.
     """
-    print "Refilling batches..."
+    print("Refilling batches...")
     tic = time.time()
     examples = [] # list of (qn_ids, context_ids, ans_span, ans_tokens) triples
     context_line, qn_line, ans_line = context_file.readline(), qn_file.readline(), ans_file.readline() # read the next line from each
@@ -124,7 +124,7 @@ def refill_batches(batches, word2id, context_file, qn_file, ans_file, batch_size
         # get ans_tokens from ans_span
         assert len(ans_span) == 2
         if ans_span[1] < ans_span[0]:
-            print "Found an ill-formed gold span: start=%i end=%i" % (ans_span[0], ans_span[1])
+            print("Found an ill-formed gold span: start=%i end=%i" % (ans_span[0], ans_span[1]))
             continue
         ans_tokens = context_tokens[ans_span[0] : ans_span[1]+1] # list of strings
 
@@ -167,7 +167,7 @@ def refill_batches(batches, word2id, context_file, qn_file, ans_file, batch_size
     random.shuffle(batches)
 
     toc = time.time()
-    print "Refilling batches took %.2f seconds" % (toc-tic)
+    print("Refilling batches took %.2f seconds" % (toc-tic))
     return
 
 
@@ -185,7 +185,7 @@ def get_batch_generator(word2id, context_path, qn_path, ans_path, batch_size, co
       discard_long: If True, discard any examples that are longer than context_len or question_len.
         If False, truncate those exmaples instead.
     """
-    context_file, qn_file, ans_file = open(context_path), open(qn_path), open(ans_path)
+    context_file, qn_file, ans_file = open(context_path, 'r', encoding='utf8'), open(qn_path, 'r', encoding='utf8'), open(ans_path, 'r', encoding='utf8')
     batches = []
 
     while True:
