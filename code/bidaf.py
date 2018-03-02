@@ -87,9 +87,9 @@ class BidirectionalAttention(object):
             c = tf.matmul(beta_t, contexts)   # shape = b x 1 x h
 
             c_tiled = tf.tile(c, [1, N, 1])
-            output = tf.concat([contexts, A, c_tiled], axis=2)  # shape = b x N x 3h
 
             # Apply dropout
-            output = tf.nn.dropout(output, self.keep_prob)
+            A_drop = tf.nn.dropout(A, self.keep_prob)
+            c_drop = tf.nn.dropout(c_tiled, self.keep_prob)
 
-            return None, output
+            return A_drop, c_drop
