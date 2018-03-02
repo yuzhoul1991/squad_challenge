@@ -5,6 +5,7 @@ from tensorflow.python.ops.rnn_cell import DropoutWrapper
 from tensorflow.python.ops import variable_scope as vs
 from tensorflow.python.ops import rnn_cell
 
+from modules import masked_softmax
 
 class BidirectionalAttention(object):
     """
@@ -23,15 +24,16 @@ class BidirectionalAttention(object):
         self.key_vec_size = key_vec_size
         self.value_vec_size = value_vec_size
 
-    def build_graph(self, questions, questions_mask, contexts):
+    def build_graph(self, questions, questions_mask, contexts, contexts_mask):
         """
         Bidirectional Attention implementation
 
         Inputs:
           questions: Tensor shape (batch_size, num_question, 2*h).
-          question_mask: Tensor shape (batch_size, num_values).
+          question_mask: Tensor shape (batch_size, num_questions).
             1s where there's real input, 0s where there's padding
           contexts: Tensor shape (batch_size, num_context, 2*h)
+          contexts_mask: Tensor shape (batch_size, num_context).
 
         Outputs:
           attn_dist: Tensor shape (batch_size, num_keys, num_values).
@@ -77,12 +79,12 @@ class BidirectionalAttention(object):
 
 
             # Perform Context-to-Question C2Q attention
-            alpha = tf.nn.softmax(S, dim=2) # shape = b x N x M
+            _, alpha = masked_softmax(S, tf.expand_dims(questions_mask, axis=1), dim=2) # shape = b x N x M
             A = tf.matmul(alpha, questions)   # shape = b x N x 2h
 
             # Perform Question-to-Context Q2C attention
             m = tf.reduce_max(S, axis=2, keep_dims=True)    # shape = b x N x 1
-            beta = tf.nn.softmax(m, dim=1)  # shape = b x N x 1
+            _, beta = masked_softmax(m, tf.expand_dims(contexts_mask, axis=2), dim=1)  # shape = b x N x 1
             beta_t = tf.transpose(beta, perm=[0, 2, 1]) # shape = b x 1 x N
             c = tf.matmul(beta_t, contexts)   # shape = b x 1 x h
 

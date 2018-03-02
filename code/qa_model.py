@@ -139,7 +139,7 @@ class QAModel(object):
 
         # Use context hidden states to attend to question hidden states
         attn_layer = BidirectionalAttention(self.keep_prob, self.FLAGS.hidden_size*2, self.FLAGS.hidden_size*2)
-        A, C = attn_layer.build_graph(question_hiddens, self.qn_mask, context_hiddens) # attn_output is shape (batch_size, context_len, hidden_size*2)
+        A, C = attn_layer.build_graph(question_hiddens, self.qn_mask, context_hiddens, self.context_mask) # attn_output is shape (batch_size, context_len, hidden_size*2)
 
         # Compute blended output
         blended_reps = tf.concat([context_hiddens, A, C], axis=2)  # shape = b x N x 3h
