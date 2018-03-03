@@ -32,9 +32,12 @@ from data_batcher import get_batch_generator
 from pretty_print import print_example
 from modules import RNNEncoder, SimpleSoftmaxLayer, BasicAttn
 from coattention import Coattention
+from bidaf import BidirectionalAttention
 
 logging.basicConfig(level=logging.INFO)
 
+# FIXME
+import pdb
 
 class QAModel(object):
     """Top-level Question Answering module"""
@@ -52,9 +55,10 @@ class QAModel(object):
             'encoder': 'lstm',
             'attention': BasicAttn
         },
-        # 'bidaf': {
-        #     'attention': BidirectionalAttention
-        # },
+        'bidaf': {
+            'encoder': 'lstm',
+            'attention': BidirectionalAttention
+        },
         'coattention': {
             'encoder': 'lstm',
             'attention': Coattention

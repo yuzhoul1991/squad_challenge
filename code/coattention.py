@@ -83,4 +83,4 @@ class Coattention(object):
             # Already applied dropout in RNNEncoder.build_graph
             output = biLSTM.build_graph(tf.concat([C, S_n_A], axis=2), biLSTM_mask, "BiLSTM")
 
-            return output[:,:-1,:]
+            return None, output[:,:-1,:]
