@@ -94,6 +94,6 @@ class BidirectionalAttention(object):
             biLSTM = RNNEncoder(h, self.keep_prob, 'lstm')
             biLSTM_mask = tf.fill([batch_size, N], 1)
             # Already applied dropout in RNNEncoder.build_graph
-            output = biLSTM.build_graph(G, biLSTM_mask, "BiLSTM")
+            output = biLSTM.build_graph(G, context_mask, "BiLSTM")
 
             return None, output

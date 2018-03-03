@@ -33,6 +33,7 @@ from pretty_print import print_example
 from modules import RNNEncoder, SimpleSoftmaxLayer, BasicAttn
 from coattention import Coattention
 from bidaf import BidirectionalAttention
+from rnet import SelfAttention
 
 logging.basicConfig(level=logging.INFO)
 
@@ -62,7 +63,11 @@ class QAModel(object):
         'coattention': {
             'encoder': 'lstm',
             'attention': Coattention
-        }
+        },
+        'rnet': {
+            'encoder': 'gru',
+            'attention': SelfAttention
+        },
     }
 
     def __init__(self, FLAGS, id2word, word2id, emb_matrix):
@@ -164,6 +169,10 @@ class QAModel(object):
         attention_class = options['attention']
         attn_layer = attention_class(self.keep_prob, self.FLAGS.hidden_size*2, self.FLAGS.hidden_size*2)
         _, attn_output = attn_layer.build_graph(question_hiddens, self.qn_mask, context_hiddens, self.context_mask) # attn_output is shape (batch_size, context_len, hidden_size*2)
+
+        if self.FLAGS.experiment_name == 'rnet':
+            attn = attention_class(self.keep_prob, 75*2, 75*2)
+            _, self_matching = attn.build_graph(attn_output, self.context_mask, attn_output, self.context_mask, 'matching')
 
         if self.FLAGS.experiment_name == 'baseline':
         # Concat attn_output to context_hiddens to get blended_reps

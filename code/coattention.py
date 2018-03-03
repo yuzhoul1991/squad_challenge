@@ -79,8 +79,7 @@ class Coattention(object):
 
             # Send to a biLSTM
             biLSTM = RNNEncoder(d, self.keep_prob, 'lstm')
-            biLSTM_mask = tf.fill([batch_size, N+1], 1)
             # Already applied dropout in RNNEncoder.build_graph
-            output = biLSTM.build_graph(tf.concat([C, S_n_A], axis=2), biLSTM_mask, "BiLSTM")
+            output = biLSTM.build_graph(tf.concat([C, S_n_A], axis=2), context_mask, "BiLSTM")
 
             return None, output[:,:-1,:]
