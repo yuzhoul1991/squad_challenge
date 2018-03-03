@@ -44,6 +44,10 @@ class QAModel(object):
             'encoder': 'gru',
             'attention': BasicAttn
         },
+        'baseline_300d': {
+            'encoder': 'gru',
+            'attention': BasicAttn
+        },
         'baseline_lstm': {
             'encoder': 'lstm',
             'attention': BasicAttn
