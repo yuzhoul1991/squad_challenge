@@ -122,6 +122,29 @@ class SimpleSoftmaxLayer(object):
 
             return masked_logits, prob_dist
 
+class BasicOutputLayer(object):
+    def __init__(self, hidden_size):
+        self.hidden_size = hidden_size
+
+    def build_graph(self, inputs, mask):
+        # Apply fully connected layer to each blended representation
+        # Note, blended_reps_final corresponds to b' in the handout
+        # Note, tf.contrib.layers.fully_connected applies a ReLU non-linarity here by default
+        blended_reps_final = tf.contrib.layers.fully_connected(inputs, num_outputs=self.hidden_size) # blended_reps_final is shape (batch_size, context_len, hidden_size)
+
+        # Use softmax layer to compute probability distribution for start location
+        # Note this produces self.logits_start and self.probdist_start, both of which have shape (batch_size, context_len)
+        with vs.variable_scope("StartDist"):
+            softmax_layer_start = SimpleSoftmaxLayer()
+            self.logits_start, self.probdist_start = softmax_layer_start.build_graph(blended_reps_final, mask)
+
+        # Use softmax layer to compute probability distribution for end location
+        # Note this produces self.logits_end and self.probdist_end, both of which have shape (batch_size, context_len)
+        with vs.variable_scope("EndDist"):
+            softmax_layer_end = SimpleSoftmaxLayer()
+            self.logits_end, self.probdist_end = softmax_layer_end.build_graph(blended_reps_final, mask)
+
+        return self.logits_start, self.logits_end, self.probdist_start, self.probdist_end
 
 class BasicAttn(object):
     """Module for basic attention.
