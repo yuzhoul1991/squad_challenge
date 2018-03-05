@@ -42,15 +42,17 @@ class SelfAttention(object):
             assert(d == context_hiddens.shape.as_list()[2])
             batch_size = tf.shape(question_hiddens)[0]
 
-            temp1 = self.one_layer(question_hiddens, hidden_size, 'question')
-            temp1 = tf.expand_dims(temp1, axis=1)   # shape = b x 1 x M x hidden_size
+            temp1 = self.one_layer(question_hiddens, hidden_size, 'question')   # shape = b x M x hidden_size
 
-            temp2 = self.one_layer(context_hiddens, hidden_size, 'context')
-            temp2 = tf.expand_dims(temp2, axis=2)   # shape = b x N x 1 x hidden_size
+            temp2 = self.one_layer(context_hiddens, hidden_size, 'context') # shape = b x N x hidden_size
 
-            tanh = tf.tanh(tf.add(temp1, temp2))    # shape = b x N x M x hidden_size
+            # tanh = tf.tanh(tf.add(temp1, temp2))    # shape = b x N x M x hidden_size
             v = tf.get_variable("v", shape=[hidden_size, 1])
-            E = tf.reshape(tf.matmul(tf.reshape(tanh, [-1, hidden_size]), v), [-1, N, M]) # shape = b x N x M
+
+            temp1 = tf.reshape(tf.matmul(tf.reshape(temp1, [-1, hidden_size]), v), [-1, M])
+            temp2 = tf.reshape(tf.matmul(tf.reshape(temp2, [-1, hidden_size]), v), [-1, N])
+
+            E = tf.add(tf.expand_dims(temp1, axis=1), tf.expand_dims(temp2, axis=2))    # shape = b x N x M
 
             _, alpha = masked_softmax(E, tf.expand_dims(question_mask, axis=1), dim=2)  # shape = b x N x M
             A = tf.matmul(alpha, question_hiddens)  # shape = b x N x 2h
@@ -76,4 +78,4 @@ class SelfAttention(object):
             original_size = input.shape.as_list()[1]
             W = tf.get_variable("W", shape=[d, hidden_size])
             input_ = tf.reshape(input, [-1, d])
-            return tf.reshape(tf.matmul(input_, W), [-1, original_size, hidden_size])   # shape = b x original_size x hidden_size
+            return tf.reshape(tf.nn.relu(tf.matmul(input_, W)), [-1, original_size, hidden_size])   # shape = b x original_size x hidden_size
