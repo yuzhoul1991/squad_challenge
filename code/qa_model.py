@@ -34,6 +34,7 @@ from modules import RNNEncoder, SimpleSoftmaxLayer, BasicAttn, BasicOutputLayer
 from coattention import Coattention
 from bidaf import BidirectionalAttention
 from rnet import SelfAttention
+from ptr_net import PointerNet
 
 logging.basicConfig(level=logging.INFO)
 
@@ -47,6 +48,11 @@ class QAModel(object):
         'baseline': {
             'encoder': 'gru',
             'attention': BasicAttn
+        },
+        'baseline_ptr': {
+            'encoder': 'gru',
+            'attention': BasicAttn,
+            'output_layer': PointerNet
         },
         'baseline_300d': {
             'encoder': 'gru',
@@ -184,8 +190,9 @@ class QAModel(object):
         else:
             blended_reps = attn_output
 
-        output_layer = BasicOutputLayer(self.FLAGS.hidden_size)
-        self.logits_start, self.logits_end, self.probdist_start, self.probdist_end = output_layer.build_graph(blended_reps, self.context_mask)
+        output_class = options.get('output_layer', BasicOutputLayer)
+        output_layer = output_class(self.FLAGS.hidden_size)
+        self.logits_start, self.logits_end, self.probdist_start, self.probdist_end = output_layer.build_graph(blended_reps, self.context_mask, labels=self.ans_span)
 
     def add_loss(self):
         """

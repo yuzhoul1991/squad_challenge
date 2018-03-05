@@ -136,15 +136,15 @@ class BasicOutputLayer(object):
         # Note this produces self.logits_start and self.probdist_start, both of which have shape (batch_size, context_len)
         with vs.variable_scope("StartDist"):
             softmax_layer_start = SimpleSoftmaxLayer()
-            self.logits_start, self.probdist_start = softmax_layer_start.build_graph(blended_reps_final, mask)
+            logits_start, probdist_start = softmax_layer_start.build_graph(blended_reps_final, mask)
 
         # Use softmax layer to compute probability distribution for end location
         # Note this produces self.logits_end and self.probdist_end, both of which have shape (batch_size, context_len)
         with vs.variable_scope("EndDist"):
             softmax_layer_end = SimpleSoftmaxLayer()
-            self.logits_end, self.probdist_end = softmax_layer_end.build_graph(blended_reps_final, mask)
+            logits_end, probdist_end = softmax_layer_end.build_graph(blended_reps_final, mask)
 
-        return self.logits_start, self.logits_end, self.probdist_start, self.probdist_end
+        return logits_start, logits_end, probdist_start, probdist_end
 
 class BasicAttn(object):
     """Module for basic attention.
