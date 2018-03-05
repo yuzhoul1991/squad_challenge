@@ -184,15 +184,16 @@ class QAModel(object):
             attn = SelfAttention(self.keep_prob, 75*2, 75*2)
             _, self_matching = attn.build_graph(attn_output, self.context_mask, attn_output, self.context_mask, 'matching')
 
-        if self.FLAGS.experiment_name == 'baseline':
-        # Concat attn_output to context_hiddens to get blended_reps
-            blended_reps = tf.concat([context_hiddens, attn_output], axis=2) # (batch_size, context_len, hidden_size*4)
-        else:
-            blended_reps = attn_output
+
+        # if self.FLAGS.experiment_name == 'baseline':
+        # # Concat attn_output to context_hiddens to get blended_reps
+        blended_reps = tf.concat([context_hiddens, self_matching], axis=2) # (batch_size, context_len, hidden_size*4)
+        # else:
+        #     blended_reps = attn_output
 
         output_class = options.get('output_layer', BasicOutputLayer)
         output_layer = output_class(self.FLAGS.hidden_size)
-        self.logits_start, self.logits_end, self.probdist_start, self.probdist_end = output_layer.build_graph(blended_reps, self.context_mask, labels=self.ans_span)
+        self.logits_start, self.logits_end, self.probdist_start, self.probdist_end = output_layer.build_graph(blended_reps, self.context_mask)
 
     def add_loss(self):
         """
