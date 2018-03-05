@@ -49,8 +49,8 @@ class SelfAttention(object):
             # tanh = tf.tanh(tf.add(temp1, temp2))    # shape = b x N x M x hidden_size
             v = tf.get_variable("v", shape=[hidden_size, 1])
 
-            temp1 = tf.reshape(tf.matmul(tf.reshape(temp1, [-1, hidden_size]), v), [-1, M])
-            temp2 = tf.reshape(tf.matmul(tf.reshape(temp2, [-1, hidden_size]), v), [-1, N])
+            temp1 = tf.reshape(tf.matmul(tf.reshape(tf.tanh(temp1), [-1, hidden_size]), v), [-1, M])
+            temp2 = tf.reshape(tf.matmul(tf.reshape(tf.tanh(temp2), [-1, hidden_size]), v), [-1, N])
 
             E = tf.add(tf.expand_dims(temp1, axis=1), tf.expand_dims(temp2, axis=2))    # shape = b x N x M
 
