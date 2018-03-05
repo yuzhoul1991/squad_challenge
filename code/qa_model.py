@@ -38,9 +38,6 @@ from ptr_net import PointerNet
 
 logging.basicConfig(level=logging.INFO)
 
-# FIXME
-import pdb
-
 class QAModel(object):
     """Top-level Question Answering module"""
 
