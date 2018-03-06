@@ -28,7 +28,7 @@ class PointerNet(object):
 
     def build_graph(self, source_hidden_states, context_mask, labels, question_hiddens, question_mask):
         def get_query_pooled(query_states, query_lengths, scope="pool_query"):
-            with variable_scope.variable_scope(scope):
+            with vs.variable_scope(scope):
                 attention_states = tf.transpose(query_states, [1, 0, 2])
                 attn_size = attention_states.get_shape()[2].value
                 batch_size_m = tf.shape(query_lengths)
@@ -52,22 +52,22 @@ class PointerNet(object):
         context_len = tf.reduce_sum(context_mask, reduction_indices=1) # shape (batch_size)
         question_len = tf.reduce_sum(question_mask, reduction_indices=1) # shape (batch_size)
 
+        atten_size = source_hidden_states.shape.as_list()[-1]
+
         attention_mechanism = tf.contrib.seq2seq.BahdanauAttention(
-            source_hidden_states.shape.as_list()[-1],
+            atten_size,
             source_hidden_states,
-            memory_sequence_length=seq_len
+            memory_sequence_length=context_len
         )
         init_state = get_query_pooled(question_hiddens, question_len)
 
         answer_ptr_input_fn = lambda curr_input, atts : tf.concat([atts, init_state], -1)
 
         attention_cell = tf.contrib.seq2seq.AttentionWrapper(
-            rnn_cell.BasicLSTMCell(self.hidden_size),
+            rnn_cell.BasicLSTMCell(atten_size),
             attention_mechanism,
             cell_input_fn=answer_ptr_input_fn
         )
-
-        import pdb;pdb.set_trace()
 
         logits, _ = tf.nn.static_rnn(attention_cell, labels, dtype=tf.float32)
 

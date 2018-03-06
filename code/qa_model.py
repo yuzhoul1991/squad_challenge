@@ -179,12 +179,12 @@ class QAModel(object):
 
         if 'rnet' in self.FLAGS.experiment_name:
             attn = SelfAttention(self.keep_prob, 75*2, 75*2)
-            _, self_matching = attn.build_graph(attn_output, self.context_mask, attn_output, self.context_mask, 'matching')
+            _, attn_output = attn.build_graph(attn_output, self.context_mask, attn_output, self.context_mask, 'matching')
 
 
         # if self.FLAGS.experiment_name == 'baseline':
         # # Concat attn_output to context_hiddens to get blended_reps
-        blended_reps = tf.concat([context_hiddens, self_matching], axis=2) # (batch_size, context_len, hidden_size*4)
+        blended_reps = tf.concat([context_hiddens, attn_output], axis=2) # (batch_size, context_len, hidden_size*4)
         # else:
         #     blended_reps = attn_output
 
