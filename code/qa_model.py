@@ -34,7 +34,7 @@ from modules import RNNEncoder, SimpleSoftmaxLayer, BasicAttn, BasicOutputLayer
 from coattention import Coattention
 from bidaf import BidirectionalAttention
 from rnet import SelfAttention
-from ptr_net import PointerNet
+# from ptr_net import PointerNet
 
 logging.basicConfig(level=logging.INFO)
 
@@ -46,11 +46,11 @@ class QAModel(object):
             'encoder': 'gru',
             'attention': BasicAttn
         },
-        'baseline_ptr': {
-            'encoder': 'gru',
-            'attention': BasicAttn,
-            'output_layer': PointerNet
-        },
+        # 'baseline_ptr': {
+        #     'encoder': 'gru',
+        #     'attention': BasicAttn,
+        #     'output_layer': PointerNet
+        # },
         'baseline_300d': {
             'encoder': 'gru',
             'attention': BasicAttn
@@ -64,6 +64,10 @@ class QAModel(object):
             'attention': BidirectionalAttention
         },
         'coattention': {
+            'encoder': 'lstm',
+            'attention': Coattention
+        },
+        'coattention_self': {
             'encoder': 'lstm',
             'attention': Coattention
         },
@@ -177,7 +181,7 @@ class QAModel(object):
         attn_layer = attention_class(self.keep_prob, self.FLAGS.hidden_size*2, self.FLAGS.hidden_size*2)
         _, attn_output = attn_layer.build_graph(question_hiddens, self.qn_mask, context_hiddens, self.context_mask) # attn_output is shape (batch_size, context_len, hidden_size*2)
 
-        if 'rnet' in self.FLAGS.experiment_name:
+        if 'rnet' in self.FLAGS.experiment_name or 'self' in self.FLAGS.experiment_name:
             attn = SelfAttention(self.keep_prob, 75*2, 75*2)
             _, self_matching = attn.build_graph(attn_output, self.context_mask, attn_output, self.context_mask, 'matching')
 
