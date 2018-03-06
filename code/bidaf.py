@@ -12,17 +12,13 @@ class BidirectionalAttention(object):
         Module for bidirectional attention.
     """
 
-    def __init__(self, keep_prob, key_vec_size, value_vec_size):
+    def __init__(self, keep_prob):
         """
         Inputs:
           keep_prob: tensor containing a single scalar that is the keep probability (for dropout)
-          key_vec_size: size of the key vectors. int
-          value_vec_size: size of the value vectors. int
         """
 
         self.keep_prob = keep_prob
-        self.key_vec_size = key_vec_size
-        self.value_vec_size = value_vec_size
 
     def build_graph(self, question_hiddens, question_mask, context_hiddens, context_mask):
         """

@@ -168,13 +168,12 @@ class QAModel(object):
 
         # Use context hidden states to attend to question hidden states
         attention_class = options['attention']
-        attn_layer = attention_class(self.keep_prob, self.FLAGS.hidden_size*2, self.FLAGS.hidden_size*2)
+        attn_layer = attention_class(self.keep_prob)
         _, attn_output = attn_layer.build_graph(question_hiddens, self.qn_mask, context_hiddens, self.context_mask) # attn_output is shape (batch_size, context_len, hidden_size*2)
 
         if 'rnet' in self.FLAGS.experiment_name:
-            attn = SelfAttention(self.keep_prob, 75*2, 75*2)
+            attn = SelfAttention(self.keep_prob)
             _, attn_output = attn.build_graph(attn_output, self.context_mask, attn_output, self.context_mask, 'matching')
-
 
         # if self.FLAGS.experiment_name == 'baseline':
         # # Concat attn_output to context_hiddens to get blended_reps
