@@ -40,7 +40,7 @@ class SelfAttention(object):
             question_len = tf.reduce_sum(question_mask, reduction_indices=1)   # shape = batch_size x 1
             context_len = tf.reduce_sum(context_mask, reduction_indices=1)   # shape = batch_size x 1
 
-            attention_mechanism = tf.contrib.seq2seq.BahdanauAttention(
+            attention_mechanism = tf.contrib.seq2seq.LuongAttention(
                 d,
                 question_hiddens,
                 memory_sequence_length=question_len
@@ -48,15 +48,13 @@ class SelfAttention(object):
             wrapped_rnn_cell = tf.contrib.seq2seq.AttentionWrapper(
                 rnn_cell.GRUCell(400),
                 attention_mechanism,
-                attention_layer_size=d,
-                output_attention=False
+                attention_layer_size=d
             )
             output, _ = tf.nn.dynamic_rnn(
                 wrapped_rnn_cell,
                 context_hiddens,
                 sequence_length=context_len,
-                dtype=tf.float32,
-                swap_memory=True
+                dtype=tf.float32
             )
         return None, output
 
