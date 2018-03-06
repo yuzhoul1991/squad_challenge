@@ -38,9 +38,6 @@ from ptr_net import PointerNet
 
 logging.basicConfig(level=logging.INFO)
 
-# FIXME
-import pdb
-
 class QAModel(object):
     """Top-level Question Answering module"""
 
@@ -193,7 +190,11 @@ class QAModel(object):
 
         output_class = options.get('output_layer', BasicOutputLayer)
         output_layer = output_class(self.FLAGS.hidden_size)
-        self.logits_start, self.logits_end, self.probdist_start, self.probdist_end = output_layer.build_graph(blended_reps, self.context_mask)
+
+        if output_class == PointerNet:
+            self.logits_start, self.logits_end, self.probdist_start, self.probdist_end = output_layer.build_graph(blended_reps, self.context_mask, self.ans_span, question_hiddens, self.qn_mask)
+        else:
+            self.logits_start, self.logits_end, self.probdist_start, self.probdist_end = output_layer.build_graph(blended_reps, self.context_mask)
 
     def add_loss(self):
         """
