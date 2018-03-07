@@ -35,7 +35,7 @@ class SelfAttention(object):
         """
         with vs.variable_scope(scope):
 
-            hidden_size = 200
+            hidden_size = 76
             N = context_hiddens.shape.as_list()[1]
             M = question_hiddens.shape.as_list()[1]
             d = question_hiddens.shape.as_list()[2]
