@@ -32,7 +32,7 @@ from data_batcher import get_batch_generator
 from pretty_print import print_example
 from modules import RNNEncoder, SimpleSoftmaxLayer, BasicAttn, BasicOutputLayer
 from coattention import Coattention
-from bidaf import BidirectionalAttention
+from bidaf import BidirectionalAttention, BidafOutputLayer
 from rnet import SelfAttention
 
 logging.basicConfig(level=logging.INFO)
@@ -55,7 +55,8 @@ class QAModel(object):
         },
         'bidaf': {
             'encoder': 'lstm',
-            'attention': BidirectionalAttention
+            'attention': BidirectionalAttention,
+            'output_layer': BidafOutputLayer
         },
         'coattention': {
             'encoder': 'lstm',
@@ -176,14 +177,14 @@ class QAModel(object):
             _, attn_output = attn.build_graph(attn_output, self.context_mask, attn_output, self.context_mask, 'matching')
 
 
-        # if self.FLAGS.experiment_name == 'baseline':
-        # # Concat attn_output to context_hiddens to get blended_reps
-        blended_reps = tf.concat([context_hiddens, attn_output], axis=2) # (batch_size, context_len, hidden_size*4)
-        # else:
-        #     blended_reps = attn_output
-
         output_class = options.get('output_layer', BasicOutputLayer)
-        output_layer = output_class(self.FLAGS.hidden_size)
+        if output_class == BasicOutputLayer:
+        # # Concat attn_output to context_hiddens to get blended_reps
+            blended_reps = tf.concat([context_hiddens, attn_output], axis=2) # (batch_size, context_len, hidden_size*4)
+        else:
+            blended_reps = attn_output
+
+        output_layer = output_class(self.FLAGS.hidden_size, self.keep_prob)
         self.logits_start, self.logits_end, self.probdist_start, self.probdist_end = output_layer.build_graph(blended_reps, self.context_mask)
 
     def add_loss(self):

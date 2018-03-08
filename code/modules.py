@@ -55,6 +55,7 @@ class RNNEncoder(object):
             self.rnn_cell_bw = rnn_cell.BasicLSTMCell(self.hidden_size)
             self.rnn_cell_bw = DropoutWrapper(self.rnn_cell_bw, input_keep_prob=self.keep_prob)
         else:
+            import sys
             sys.exit("Unsupported rnn cell type")
 
     def build_graph(self, inputs, masks, scope="RNNEncoder"):
