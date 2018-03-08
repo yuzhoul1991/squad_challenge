@@ -96,6 +96,10 @@ class BidirectionalAttention(object):
                 # Already applied dropout in RNNEncoder.build_graph
                 M = biLSTM.build_graph(G, context_mask, "BiLSTM")   # shape = b x N x h
 
+                biLSTM = RNNEncoder(h/2, self.keep_prob, 'lstm')
+                # Already applied dropout in RNNEncoder.build_graph
+                M = biLSTM.build_graph(M, context_mask, "BiLSTM2")   # shape = b x N x h
+
             output = [G, M]
             return None, output
 
@@ -110,7 +114,6 @@ class BidafOutputLayer(object):
         N = G.shape.as_list()[1]
         assert(N == M.shape.as_list()[1])
 
-        w_p2 = tf.get_variable("w_p2", shape=[h, 1])
 
         with vs.variable_scope("start"):
             w_p1 = tf.get_variable("w_p1", shape=[h, 1])
@@ -118,7 +121,9 @@ class BidafOutputLayer(object):
             temp_start = tf.reshape(temp_start, [-1, N])
             logits_start, probdist_start = masked_softmax(temp_start, mask, 1)
 
+
         with vs.variable_scope("end"):
+            w_p2 = tf.get_variable("w_p2", shape=[h, 1])
             biLSTM = RNNEncoder(h/2, self.keep_prob, 'lstm')
             M_2 = biLSTM.build_graph(M, mask, 'bilstm')
             temp_end = tf.matmul(tf.reshape(tf.concat([G, M_2], axis=2), [-1, h]), w_p2)
