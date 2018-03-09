@@ -66,7 +66,7 @@ class QAModel(object):
             'encoder': 'lstm',
             'attention': Coattention
         },
-        'rnet': {
+        'rnet_multiplicative': {
             'encoder': 'gru',
             'attention': SelfAttention
         },
@@ -175,7 +175,6 @@ class QAModel(object):
         if 'rnet' in self.FLAGS.experiment_name:
             attn = SelfAttention(self.keep_prob, 75*2, 75*2)
             _, attn_output = attn.build_graph(attn_output, self.context_mask, attn_output, self.context_mask, 'matching')
-
 
         output_class = options.get('output_layer', BasicOutputLayer)
         if output_class == BasicOutputLayer:
