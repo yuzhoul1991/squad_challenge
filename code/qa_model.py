@@ -89,6 +89,10 @@ class QAModel(object):
             'encoder': 'gru',
             'attention': SelfAttention
         },
+        'rnet_self': {
+            'encoder': 'gru',
+            'attention': SelfAttention
+        },
     }
 
     def __init__(self, FLAGS, id2word, word2id, emb_matrix):
@@ -188,11 +192,11 @@ class QAModel(object):
 
         # Use context hidden states to attend to question hidden states
         attention_class = options['attention']
-        attn_layer = attention_class(self.FLAGS.hidden_size, self.keep_prob)
+        attn_layer = attention_class(75, self.keep_prob)
         _, attn_output = attn_layer.build_graph(question_hiddens, self.qn_mask, context_hiddens, self.context_mask) # attn_output is shape (batch_size, context_len, hidden_size*2)
 
         if 'self' in self.FLAGS.experiment_name:
-            attn = SelfAttention(self.FLAGS.hidden_size, self.keep_prob)
+            attn = SelfAttention(75, self.keep_prob)
             _, attn_output = attn.build_graph(attn_output, self.context_mask, attn_output, self.context_mask, 'matching')
 
         output_class = options.get('output_layer', BasicOutputLayer)
