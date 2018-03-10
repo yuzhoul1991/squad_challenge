@@ -21,6 +21,7 @@ import time
 import logging
 import os
 import sys
+import itertools
 
 import numpy as np
 import tensorflow as tf
@@ -43,6 +44,10 @@ class QAModel(object):
 
     experiment_hsh = {
         'baseline': {
+            'encoder': 'gru',
+            'attention': BasicAttn
+        },
+        'baseline_new': {
             'encoder': 'gru',
             'attention': BasicAttn
         },
@@ -337,8 +342,26 @@ class QAModel(object):
         start_dist, end_dist = self.get_prob_dists(session, batch)
 
         # Take argmax to get start_pos and end_post, both shape (batch_size)
-        start_pos = np.argmax(start_dist, axis=1)
-        end_pos = np.argmax(end_dist, axis=1)
+        # start_pos = np.argmax(start_dist, axis=1)
+        # end_pos = np.argmax(end_dist, axis=1)
+        cut_off_len = 30
+
+        start_pos = []
+        end_pos = []
+        for i in range(len(start_dist)):
+            exp_start_dist = start_dist[i]
+            exp_end_dist = end_dist[i]
+
+            max_prob = 0
+            max_start = max_end = 0
+            for start_idx, end_idx in itertools.product(range(len(exp_start_dist)), range(len(exp_end_dist))):
+                if start_idx <= end_idx <= start_idx + 30:
+                    prob = exp_start_dist[start_idx]*exp_end_dist[end_idx]
+                    if prob > max_prob:
+                        max_start, max_end = start_idx, end_idx
+                        max_prob = prob
+            start_pos.append(max_start)
+            end_pos.append(max_end)
 
         return start_pos, end_pos
 
@@ -423,8 +446,8 @@ class QAModel(object):
             pred_start_pos, pred_end_pos = self.get_start_end_pos(session, batch)
 
             # Convert the start and end positions to lists length batch_size
-            pred_start_pos = pred_start_pos.tolist() # list length batch_size
-            pred_end_pos = pred_end_pos.tolist() # list length batch_size
+            # pred_start_pos = pred_start_pos.tolist() # list length batch_size
+            # pred_end_pos = pred_end_pos.tolist() # list length batch_size
 
             for ex_idx, (pred_ans_start, pred_ans_end, true_ans_tokens) in enumerate(zip(pred_start_pos, pred_end_pos, batch.ans_tokens)):
                 example_num += 1
