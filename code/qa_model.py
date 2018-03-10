@@ -85,6 +85,10 @@ class QAModel(object):
             'encoder': 'gru',
             'attention': SelfAttention
         },
+        'rnet_self_h75': {
+            'encoder': 'gru',
+            'attention': SelfAttention
+        },
     }
 
     def __init__(self, FLAGS, id2word, word2id, emb_matrix):
