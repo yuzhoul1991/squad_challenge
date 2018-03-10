@@ -34,6 +34,7 @@ from modules import RNNEncoder, SimpleSoftmaxLayer, BasicAttn, BasicOutputLayer
 from coattention import Coattention
 from bidaf import BidirectionalAttention, BidafOutputLayer
 from rnet import SelfAttention
+from ptr_net import PointerNet
 
 logging.basicConfig(level=logging.INFO)
 
@@ -69,6 +70,11 @@ class QAModel(object):
         'rnet_multiplicative': {
             'encoder': 'gru',
             'attention': SelfAttention
+        },
+        'rnet_self_ptr': {
+            'encoder': 'gru',
+            'attention': SelfAttention,
+            'output_layer': PointerNet
         },
         'rnet_self_200h': {
             'encoder': 'gru',
@@ -188,7 +194,7 @@ class QAModel(object):
             blended_reps = attn_output
 
         output_layer = output_class(self.FLAGS.hidden_size, self.keep_prob)
-        self.logits_start, self.logits_end, self.probdist_start, self.probdist_end = output_layer.build_graph(blended_reps, self.context_mask)
+        self.logits_start, self.logits_end, self.probdist_start, self.probdist_end = output_layer.build_graph(blended_reps, self.context_mask, self.ans_span, question_hiddens, self.qn_mask)
 
     def add_loss(self):
         """

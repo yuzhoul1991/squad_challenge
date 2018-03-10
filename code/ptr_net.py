@@ -6,7 +6,7 @@ from tensorflow.python.ops import rnn_cell
 from modules import masked_softmax
 
 class PointerNet(object):
-    def __init__(self, hidden_size):
+    def __init__(self, hidden_size, keep_prob):
         self.hidden_size = hidden_size
 
     def build_graph(self, source_hidden_states, context_mask, labels, question_hiddens, question_mask):
@@ -57,5 +57,6 @@ class PointerNet(object):
         logits_start, logits_end = logits
         masked_logits_start, probdist_start = masked_softmax(logits_start, context_mask, 1)
         masked_logits_end, probdist_end = masked_softmax(logits_end, context_mask, 1)
+
 
         return masked_logits_start, masked_logits_end, probdist_start, probdist_end
