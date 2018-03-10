@@ -48,7 +48,7 @@ class SelfAttention(object):
             temp2 = tf.nn.relu(self.one_layer(context_hiddens, hidden_size, 'context'))
             #temp2 = tf.expand_dims(temp2, axis=2)   # shape = b x N x 1 x hidden_size
 
-	    E = tf.matmul(temp2, tf.transpose(temp1, [0, 2, 1]))
+	    E = tf.matmul(temp2, tf.transpose(temp1, [0, 2, 1]))	# shape = b x N x M
 
             #tanh = tf.tanh(tf.add(temp1, temp2))    # shape = b x N x M x hidden_size
             #v = tf.get_variable("v", shape=[hidden_size, 1])
