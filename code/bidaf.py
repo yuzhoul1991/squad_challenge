@@ -75,7 +75,7 @@ class BidirectionalAttention(object):
 
             # Perform Context-to-Question C2Q attention
             _, alpha = masked_softmax(S, tf.expand_dims(question_mask, axis=1), dim=2) # shape = b x N x M
-            A = tf.matmul(alpha, question_hiddens)   # shape = b x N x 2h
+            A = tf.matmul(alpha, question_hiddens)   # shape = b x N x h
 
             # Perform Question-to-Context Q2C attention
             m = tf.reduce_max(S, axis=2, keep_dims=True)    # shape = b x N x 1
@@ -92,9 +92,12 @@ class BidirectionalAttention(object):
 
             with vs.variable_scope("modeling"):
             # Send to a biLSTM
-                biLSTM = RNNEncoder(h/2, self.keep_prob, 'lstm')
+                first_layer = RNNEncoder(h/2, self.keep_prob, 'lstm')
                 # Already applied dropout in RNNEncoder.build_graph
-                M = biLSTM.build_graph(G, context_mask, "BiLSTM")   # shape = b x N x h
+                M = first_layer.build_graph(G, context_mask, "first")   # shape = b x N x h
+
+                second_layer = RNNEncoder(h/2, self.keep_prob, 'lstm')
+                M = second_layer.build_graph(M, context_mask, "second")   # shape = b x N x h
 
             output = [G, M]
             return None, output
@@ -118,9 +121,12 @@ class BidafOutputLayer(object):
             temp_start = tf.reshape(temp_start, [-1, N])
             logits_start, probdist_start = masked_softmax(temp_start, mask, 1)
 
+        import pdb; pdb.set_trace()
+
         with vs.variable_scope("end"):
             biLSTM = RNNEncoder(h/2, self.keep_prob, 'lstm')
-            M_2 = biLSTM.build_graph(M, mask, 'bilstm')
+            carry = tf.tile(tf.expand_dims(logits_start, axis=1), [1, N, 1])
+            M_2 = biLSTM.build_graph(tf.concat([G, M, carry], axis=2), mask, 'bilstm')
             temp_end = tf.matmul(tf.reshape(tf.concat([G, M_2], axis=2), [-1, h]), w_p2)
             temp_end = tf.reshape(temp_start, [-1, N])
             logits_end, probdist_end = masked_softmax(temp_end, mask, 1)
