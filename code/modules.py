@@ -124,7 +124,7 @@ class SimpleSoftmaxLayer(object):
             return masked_logits, prob_dist
 
 class BasicOutputLayer(object):
-    def __init__(self, hidden_size):
+    def __init__(self, hidden_size, keep_prob):
         self.hidden_size = hidden_size
 
     def build_graph(self, inputs, mask):
