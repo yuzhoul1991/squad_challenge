@@ -76,7 +76,7 @@ class QAModel(object):
             'attention': SelfAttention,
             'output_layer': PointerNet
         },
-        'rnet_self_200h': {
+        'rnet_self_h200': {
             'encoder': 'gru',
             'attention': SelfAttention
         },
@@ -179,11 +179,11 @@ class QAModel(object):
 
         # Use context hidden states to attend to question hidden states
         attention_class = options['attention']
-        attn_layer = attention_class(self.keep_prob)
+        attn_layer = attention_class(self.FLAGS.hidden_size, self.keep_prob)
         _, attn_output = attn_layer.build_graph(question_hiddens, self.qn_mask, context_hiddens, self.context_mask) # attn_output is shape (batch_size, context_len, hidden_size*2)
 
         if 'self' in self.FLAGS.experiment_name:
-            attn = SelfAttention(self.keep_prob)
+            attn = SelfAttention(self.FLAGS.hidden_size, self.keep_prob)
             _, attn_output = attn.build_graph(attn_output, self.context_mask, attn_output, self.context_mask, 'matching')
 
         output_class = options.get('output_layer', BasicOutputLayer)
@@ -194,7 +194,10 @@ class QAModel(object):
             blended_reps = attn_output
 
         output_layer = output_class(self.FLAGS.hidden_size, self.keep_prob)
-        self.logits_start, self.logits_end, self.probdist_start, self.probdist_end = output_layer.build_graph(blended_reps, self.context_mask, self.ans_span, question_hiddens, self.qn_mask)
+        if output_class == BasicOutputLayer:
+            self.logits_start, self.logits_end, self.probdist_start, self.probdist_end = output_layer.build_graph(blended_reps, self.context_mask)
+        else:
+            self.logits_start, self.logits_end, self.probdist_start, self.probdist_end = output_layer.build_graph(blended_reps, self.context_mask, self.ans_span, question_hiddens, self.qn_mask)
 
     def add_loss(self):
         """

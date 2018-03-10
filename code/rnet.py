@@ -10,13 +10,14 @@ class SelfAttention(object):
     Module for rnet self-attention.
     """
 
-    def __init__(self, keep_prob):
+    def __init__(self, hidden_size, keep_prob):
         """
         Inputs:
           keep_prob: tensor containing a single scalar that is the keep probability (for dropout)
           key_vec_size: size of the key vectors. int
           value_vec_size: size of the value vectors. int
         """
+        self.hidden_size = hidden_size
         self.keep_prob = keep_prob
 
     def build_graph(self, question_hiddens, question_mask, context_hiddens, context_mask, scope="self_attention"):
@@ -33,7 +34,8 @@ class SelfAttention(object):
         """
         with vs.variable_scope(scope):
 
-            hidden_size = 76
+            hidden_size = self.hidden_size
+            print(hidden_size)
             N = context_hiddens.shape.as_list()[1]
             M = question_hiddens.shape.as_list()[1]
             d = question_hiddens.shape.as_list()[2]
