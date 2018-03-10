@@ -53,8 +53,8 @@ class QAModel(object):
             'encoder': 'lstm',
             'attention': BasicAttn
         },
-        'bidaf': {
-            'encoder': 'lstm',
+        'bidaf_out': {
+            'encoder': 'gru',
             'attention': BidirectionalAttention,
             'output_layer': BidafOutputLayer
         },

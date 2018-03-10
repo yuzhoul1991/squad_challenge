@@ -121,8 +121,6 @@ class BidafOutputLayer(object):
             temp_start = tf.reshape(temp_start, [-1, N])
             logits_start, probdist_start = masked_softmax(temp_start, mask, 1)
 
-        import pdb; pdb.set_trace()
-
         with vs.variable_scope("end"):
             biLSTM = RNNEncoder(h/2, self.keep_prob, 'lstm')
             carry = tf.tile(tf.expand_dims(logits_start, axis=1), [1, N, 1])
