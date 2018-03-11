@@ -55,6 +55,7 @@ class RNNEncoder(object):
             self.rnn_cell_bw = rnn_cell.BasicLSTMCell(self.hidden_size)
             self.rnn_cell_bw = DropoutWrapper(self.rnn_cell_bw, input_keep_prob=self.keep_prob)
         else:
+            import sys
             sys.exit("Unsupported rnn cell type")
 
     def build_graph(self, inputs, masks, scope="RNNEncoder"):
@@ -74,7 +75,7 @@ class RNNEncoder(object):
 
             # Note: fw_out and bw_out are the hidden states for every timestep.
             # Each is shape (batch_size, seq_len, hidden_size).
-            (fw_out, bw_out), _ = tf.nn.bidirectional_dynamic_rnn(self.rnn_cell_fw, self.rnn_cell_bw, inputs, input_lens, dtype=tf.float32)
+            (fw_out, bw_out), _ = tf.nn.bidirectional_dynamic_rnn(self.rnn_cell_fw, self.rnn_cell_bw, inputs, input_lens, dtype=tf.float32, swap_memory=True)
 
             # Concatenate the forward and backward hidden states
             out = tf.concat([fw_out, bw_out], 2)
@@ -123,7 +124,7 @@ class SimpleSoftmaxLayer(object):
             return masked_logits, prob_dist
 
 class BasicOutputLayer(object):
-    def __init__(self, hidden_size):
+    def __init__(self, hidden_size, keep_prob):
         self.hidden_size = hidden_size
 
     def build_graph(self, inputs, mask):
@@ -160,16 +161,12 @@ class BasicAttn(object):
     module with other inputs.
     """
 
-    def __init__(self, keep_prob, key_vec_size, value_vec_size):
+    def __init__(self, hidden_size, keep_prob):
         """
         Inputs:
           keep_prob: tensor containing a single scalar that is the keep probability (for dropout)
-          key_vec_size: size of the key vectors. int
-          value_vec_size: size of the value vectors. int
         """
         self.keep_prob = keep_prob
-        self.key_vec_size = key_vec_size
-        self.value_vec_size = value_vec_size
 
     def build_graph(self, values, values_mask, keys, keys_mask):
         """

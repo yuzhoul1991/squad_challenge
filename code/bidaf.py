@@ -87,13 +87,47 @@ class BidirectionalAttention(object):
 
             # Apply dropout
 
-            G = tf.concat([context_hiddens, A, tf.multiply(context_hiddens, A), tf.multiply(context_hiddens, c_tiled)], axis=2)  # shape = b x N x 4h
+            G = tf.concat([context_hiddens, A, tf.multiply(context_hiddens, A), tf.multiply(context_hiddens, c_tiled)], axis=2)  # shape = b x N x 4h ie. 4h = 8d
 
 
+            with vs.variable_scope("modeling"):
             # Send to a biLSTM
-            biLSTM = RNNEncoder(h, self.keep_prob, 'lstm')
-            biLSTM_mask = tf.fill([batch_size, N], 1)
-            # Already applied dropout in RNNEncoder.build_graph
-            output = biLSTM.build_graph(G, context_mask, "BiLSTM")
+                biLSTM = RNNEncoder(h/2, self.keep_prob, 'lstm')
+                # Already applied dropout in RNNEncoder.build_graph
+                M = biLSTM.build_graph(G, context_mask, "BiLSTM")   # shape = b x N x h
 
+                biLSTM = RNNEncoder(h/2, self.keep_prob, 'lstm')
+                # Already applied dropout in RNNEncoder.build_graph
+                M = biLSTM.build_graph(M, context_mask, "BiLSTM2")   # shape = b x N x h
+
+            output = [G, M]
             return None, output
+
+class BidafOutputLayer(object):
+    def __init__(self, hidden_size, keep_prob):
+        self.hidden_size = hidden_size
+        self.keep_prob = keep_prob
+
+    def build_graph(self, inputs, mask):
+        G, M = inputs
+        h = G.shape.as_list()[2] + M.shape.as_list()[2]
+        N = G.shape.as_list()[1]
+        assert(N == M.shape.as_list()[1])
+
+
+        with vs.variable_scope("start"):
+            w_p1 = tf.get_variable("w_p1", shape=[h, 1])
+            temp_start = tf.matmul(tf.reshape(tf.concat([G, M], axis=2), [-1, h]), w_p1)
+            temp_start = tf.reshape(temp_start, [-1, N])
+            logits_start, probdist_start = masked_softmax(temp_start, mask, 1)
+
+
+        with vs.variable_scope("end"):
+            w_p2 = tf.get_variable("w_p2", shape=[h, 1])
+            biLSTM = RNNEncoder(h/2, self.keep_prob, 'lstm')
+            M_2 = biLSTM.build_graph(M, mask, 'bilstm')
+            temp_end = tf.matmul(tf.reshape(tf.concat([G, M_2], axis=2), [-1, h]), w_p2)
+            temp_end = tf.reshape(temp_start, [-1, N])
+            logits_end, probdist_end = masked_softmax(temp_end, mask, 1)
+
+        return logits_start, logits_end, probdist_start, probdist_end
