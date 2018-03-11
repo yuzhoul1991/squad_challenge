@@ -43,7 +43,7 @@ class QAModel(object):
     """Top-level Question Answering module"""
 
     experiment_hsh = {
-        'baseline': {
+        'baseline_emf': {
             'encoder': 'gru',
             'attention': BasicAttn
         },
