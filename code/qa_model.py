@@ -200,7 +200,7 @@ class QAModel(object):
             _, attn_output = attn.build_graph(attn_output, self.context_mask, attn_output, self.context_mask, 'matching')
 
         output_class = options.get('output_layer', BasicOutputLayer)
-        if output_class == BasicOutputLayer:
+        if 'baseline' in self.FLAGS.experiment_name:
         # # Concat attn_output to context_hiddens to get blended_reps
             blended_reps = tf.concat([context_hiddens, attn_output], axis=2) # (batch_size, context_len, hidden_size*4)
         else:
