@@ -21,6 +21,7 @@ import time
 import logging
 import os
 import sys
+import itertools
 
 import numpy as np
 import tensorflow as tf
@@ -30,10 +31,11 @@ from tensorflow.python.ops import embedding_ops
 from evaluate import exact_match_score, f1_score
 from data_batcher import get_batch_generator
 from pretty_print import print_example
-from modules import RNNEncoder, SimpleSoftmaxLayer, BasicAttn
+from modules import RNNEncoder, SimpleSoftmaxLayer, BasicAttn, BasicOutputLayer
 from coattention import Coattention
-from bidaf import BidirectionalAttention
+from bidaf import BidirectionalAttention, BidafOutputLayer
 from rnet import SelfAttention
+from ptr_net import PointerNet
 
 logging.basicConfig(level=logging.INFO)
 
@@ -42,6 +44,10 @@ class QAModel(object):
 
     experiment_hsh = {
         'baseline': {
+            'encoder': 'gru',
+            'attention': BasicAttn
+        },
+        'baseline_new': {
             'encoder': 'gru',
             'attention': BasicAttn
         },
@@ -55,11 +61,33 @@ class QAModel(object):
         },
         'bidaf': {
             'encoder': 'lstm',
-            'attention': BidirectionalAttention
+            'attention': BidirectionalAttention,
+            'output_layer': BidafOutputLayer
         },
         'coattention': {
             'encoder': 'lstm',
             'attention': Coattention
+        },
+        'co_rnet': {
+            'encoder': 'lstm',
+            'attention': Coattention
+        },
+        'rnet_multiplicative': {
+            'encoder': 'gru',
+            'attention': SelfAttention
+        },
+        'rnet_self_ptr': {
+            'encoder': 'gru',
+            'attention': SelfAttention,
+            'output_layer': PointerNet
+        },
+        'rnet_self_h200': {
+            'encoder': 'gru',
+            'attention': SelfAttention
+        },
+        'rnet_self_h75': {
+            'encoder': 'gru',
+            'attention': SelfAttention
         },
         'rnet_self': {
             'encoder': 'gru',
@@ -164,36 +192,25 @@ class QAModel(object):
 
         # Use context hidden states to attend to question hidden states
         attention_class = options['attention']
-        attn_layer = attention_class(self.keep_prob, self.FLAGS.hidden_size*2, self.FLAGS.hidden_size*2)
+        attn_layer = attention_class(75, self.keep_prob)
         _, attn_output = attn_layer.build_graph(question_hiddens, self.qn_mask, context_hiddens, self.context_mask) # attn_output is shape (batch_size, context_len, hidden_size*2)
 
-        if self.FLAGS.experiment_name == 'rnet_self':
-            attn = attention_class(self.keep_prob, 75*2, 75*2)
-            _, self_matching = attn.build_graph(attn_output, self.context_mask, attn_output, self.context_mask, 'matching')
+        if 'self' in self.FLAGS.experiment_name:
+            attn = SelfAttention(75, self.keep_prob)
+            _, attn_output = attn.build_graph(attn_output, self.context_mask, attn_output, self.context_mask, 'matching')
 
-        if self.FLAGS.experiment_name == 'baseline':
-        # Concat attn_output to context_hiddens to get blended_reps
+        output_class = options.get('output_layer', BasicOutputLayer)
+        if 'baseline' in self.FLAGS.experiment_name:
+        # # Concat attn_output to context_hiddens to get blended_reps
             blended_reps = tf.concat([context_hiddens, attn_output], axis=2) # (batch_size, context_len, hidden_size*4)
         else:
-            blended_reps = self_matching
+            blended_reps = attn_output
 
-        # Apply fully connected layer to each blended representation
-        # Note, blended_reps_final corresponds to b' in the handout
-        # Note, tf.contrib.layers.fully_connected applies a ReLU non-linarity here by default
-        blended_reps_final = tf.contrib.layers.fully_connected(blended_reps, num_outputs=self.FLAGS.hidden_size) # blended_reps_final is shape (batch_size, context_len, hidden_size)
-
-        # Use softmax layer to compute probability distribution for start location
-        # Note this produces self.logits_start and self.probdist_start, both of which have shape (batch_size, context_len)
-        with vs.variable_scope("StartDist"):
-            softmax_layer_start = SimpleSoftmaxLayer()
-            self.logits_start, self.probdist_start = softmax_layer_start.build_graph(blended_reps_final, self.context_mask)
-
-        # Use softmax layer to compute probability distribution for end location
-        # Note this produces self.logits_end and self.probdist_end, both of which have shape (batch_size, context_len)
-        with vs.variable_scope("EndDist"):
-            softmax_layer_end = SimpleSoftmaxLayer()
-            self.logits_end, self.probdist_end = softmax_layer_end.build_graph(blended_reps_final, self.context_mask)
-
+        output_layer = output_class(self.FLAGS.hidden_size, self.keep_prob)
+        if output_class == BasicOutputLayer:
+            self.logits_start, self.logits_end, self.probdist_start, self.probdist_end = output_layer.build_graph(blended_reps, self.context_mask)
+        else:
+            self.logits_start, self.logits_end, self.probdist_start, self.probdist_end = output_layer.build_graph(blended_reps, self.context_mask, self.ans_span, question_hiddens, self.qn_mask)
 
     def add_loss(self):
         """
@@ -333,8 +350,26 @@ class QAModel(object):
         start_dist, end_dist = self.get_prob_dists(session, batch)
 
         # Take argmax to get start_pos and end_post, both shape (batch_size)
-        start_pos = np.argmax(start_dist, axis=1)
-        end_pos = np.argmax(end_dist, axis=1)
+        # start_pos = np.argmax(start_dist, axis=1)
+        # end_pos = np.argmax(end_dist, axis=1)
+        cut_off_len = 30
+
+        start_pos = []
+        end_pos = []
+        for i in range(len(start_dist)):
+            exp_start_dist = start_dist[i]
+            exp_end_dist = end_dist[i]
+
+            max_prob = 0
+            max_start = max_end = 0
+            for start_idx, end_idx in itertools.product(range(len(exp_start_dist)), range(len(exp_end_dist))):
+                if start_idx <= end_idx <= start_idx + 30:
+                    prob = exp_start_dist[start_idx]*exp_end_dist[end_idx]
+                    if prob > max_prob:
+                        max_start, max_end = start_idx, end_idx
+                        max_prob = prob
+            start_pos.append(max_start)
+            end_pos.append(max_end)
 
         return start_pos, end_pos
 
@@ -419,8 +454,8 @@ class QAModel(object):
             pred_start_pos, pred_end_pos = self.get_start_end_pos(session, batch)
 
             # Convert the start and end positions to lists length batch_size
-            pred_start_pos = pred_start_pos.tolist() # list length batch_size
-            pred_end_pos = pred_end_pos.tolist() # list length batch_size
+            # pred_start_pos = pred_start_pos.tolist() # list length batch_size
+            # pred_end_pos = pred_end_pos.tolist() # list length batch_size
 
             for ex_idx, (pred_ans_start, pred_ans_end, true_ans_tokens) in enumerate(zip(pred_start_pos, pred_end_pos, batch.ans_tokens)):
                 example_num += 1

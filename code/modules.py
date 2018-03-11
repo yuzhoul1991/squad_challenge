@@ -55,6 +55,7 @@ class RNNEncoder(object):
             self.rnn_cell_bw = rnn_cell.BasicLSTMCell(self.hidden_size)
             self.rnn_cell_bw = DropoutWrapper(self.rnn_cell_bw, input_keep_prob=self.keep_prob)
         else:
+            import sys
             sys.exit("Unsupported rnn cell type")
 
     def build_graph(self, inputs, masks, scope="RNNEncoder"):
@@ -74,7 +75,7 @@ class RNNEncoder(object):
 
             # Note: fw_out and bw_out are the hidden states for every timestep.
             # Each is shape (batch_size, seq_len, hidden_size).
-            (fw_out, bw_out), _ = tf.nn.bidirectional_dynamic_rnn(self.rnn_cell_fw, self.rnn_cell_bw, inputs, input_lens, dtype=tf.float32)
+            (fw_out, bw_out), _ = tf.nn.bidirectional_dynamic_rnn(self.rnn_cell_fw, self.rnn_cell_bw, inputs, input_lens, dtype=tf.float32, swap_memory=True)
 
             # Concatenate the forward and backward hidden states
             out = tf.concat([fw_out, bw_out], 2)
@@ -122,6 +123,29 @@ class SimpleSoftmaxLayer(object):
 
             return masked_logits, prob_dist
 
+class BasicOutputLayer(object):
+    def __init__(self, hidden_size, keep_prob):
+        self.hidden_size = hidden_size
+
+    def build_graph(self, inputs, mask):
+        # Apply fully connected layer to each blended representation
+        # Note, blended_reps_final corresponds to b' in the handout
+        # Note, tf.contrib.layers.fully_connected applies a ReLU non-linarity here by default
+        blended_reps_final = tf.contrib.layers.fully_connected(inputs, num_outputs=self.hidden_size) # blended_reps_final is shape (batch_size, context_len, hidden_size)
+
+        # Use softmax layer to compute probability distribution for start location
+        # Note this produces self.logits_start and self.probdist_start, both of which have shape (batch_size, context_len)
+        with vs.variable_scope("StartDist"):
+            softmax_layer_start = SimpleSoftmaxLayer()
+            logits_start, probdist_start = softmax_layer_start.build_graph(blended_reps_final, mask)
+
+        # Use softmax layer to compute probability distribution for end location
+        # Note this produces self.logits_end and self.probdist_end, both of which have shape (batch_size, context_len)
+        with vs.variable_scope("EndDist"):
+            softmax_layer_end = SimpleSoftmaxLayer()
+            logits_end, probdist_end = softmax_layer_end.build_graph(blended_reps_final, mask)
+
+        return logits_start, logits_end, probdist_start, probdist_end
 
 class BasicAttn(object):
     """Module for basic attention.
@@ -137,16 +161,12 @@ class BasicAttn(object):
     module with other inputs.
     """
 
-    def __init__(self, keep_prob, key_vec_size, value_vec_size):
+    def __init__(self, hidden_size, keep_prob):
         """
         Inputs:
           keep_prob: tensor containing a single scalar that is the keep probability (for dropout)
-          key_vec_size: size of the key vectors. int
-          value_vec_size: size of the value vectors. int
         """
         self.keep_prob = keep_prob
-        self.key_vec_size = key_vec_size
-        self.value_vec_size = value_vec_size
 
     def build_graph(self, values, values_mask, keys, keys_mask):
         """
