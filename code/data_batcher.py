@@ -30,7 +30,7 @@ from vocab import PAD_ID, UNK_ID
 class Batch(object):
     """A class to hold the information needed for a training batch"""
 
-    def __init__(self, context_ids, context_mask, context_tokens, qn_ids, qn_mask, qn_tokens, ans_span, ans_tokens, uuids=None):
+    def __init__(self, em_indicator, em_padding, context_ids, context_mask, context_tokens, qn_ids, qn_mask, qn_tokens, ans_span, ans_tokens, uuids=None):
         """
         Inputs:
           {context/qn}_ids: Numpy arrays.
@@ -42,6 +42,8 @@ class Batch(object):
           uuid: a list (length batch_size) of strings.
             Not needed for training. Used by official_eval mode.
         """
+        self.em_indicator = em_indicator
+        self.em_padding = em_padding
         self.context_ids = context_ids
         self.context_mask = context_mask
         self.context_tokens = context_tokens
@@ -212,8 +214,30 @@ def get_batch_generator(word2id, context_path, qn_path, ans_path, batch_size, co
         # Make ans_span into a np array
         ans_span = np.array(ans_span) # shape (batch_size, 2)
 
+
+        context_em_indicators = []
+        counter = 0
+        for passage, question in zip(context_tokens, qn_tokens):
+            per_example = []
+            # for token in passage:
+            for i in range(context_len):
+                if i < len(passage):
+                    token = passage[i]
+                    token_em = []
+                    original = token
+                    lower = token.lower()
+                    token_em.append(1 if original in question else 0)
+                    token_em.append(1 if lower in question else 0)
+                    per_example.append(token_em)
+                else:
+                    per_example.append([0, 0])
+            context_em_indicators.append(per_example)
+
+        question_em_padding = np.zeros([batch_size, question_len, 2])
+        context_em_indicators = np.array(context_em_indicators)
+
         # Make into a Batch object
-        batch = Batch(context_ids, context_mask, context_tokens, qn_ids, qn_mask, qn_tokens, ans_span, ans_tokens)
+        batch = Batch(context_em_indicators, question_em_padding, context_ids, context_mask, context_tokens, qn_ids, qn_mask, qn_tokens, ans_span, ans_tokens)
 
         yield batch
 
