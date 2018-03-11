@@ -35,6 +35,7 @@ from modules import RNNEncoder, SimpleSoftmaxLayer, BasicAttn, BasicOutputLayer
 from coattention import Coattention
 from bidaf import BidirectionalAttention, BidafOutputLayer
 from rnet import SelfAttention
+from aoa import AttentionOverAttention
 from ptr_net import PointerNet
 
 logging.basicConfig(level=logging.INFO)
@@ -47,9 +48,13 @@ class QAModel(object):
             'encoder': 'gru',
             'attention': BasicAttn
         },
-        'baseline_new': {
+        'baseline': {
             'encoder': 'gru',
             'attention': BasicAttn
+        },
+        'aoa_attention': {
+            'encoder': 'gru',
+            'attention': AttentionOverAttention
         },
         'baseline_300d': {
             'encoder': 'gru',
@@ -58,6 +63,10 @@ class QAModel(object):
         'baseline_lstm': {
             'encoder': 'lstm',
             'attention': BasicAttn
+        },
+        'bidaf_attention': {
+            'encoder': 'lstm',
+            'attention': BidirectionalAttention
         },
         'bidaf': {
             'encoder': 'lstm',
