@@ -43,7 +43,7 @@ class QAModel(object):
     """Top-level Question Answering module"""
 
     experiment_hsh = {
-        'baseline_emf': {
+        'baseline_emf2': {
             'encoder': 'gru',
             'attention': BasicAttn
         },
@@ -147,8 +147,8 @@ class QAModel(object):
         # Add placeholders for inputs.
         # These are all batch-first: the None corresponds to batch_size and
         # allows you to run the same model with variable batch_size
-        self.em_indicator = tf.placeholder(tf.float32, shape=[None, self.FLAGS.context_len, 2])
-        self.em_padding = tf.placeholder(tf.float32, shape=[None, self.FLAGS.question_len, 2])
+        self.context_em_indicator = tf.placeholder(tf.float32, shape=[None, self.FLAGS.context_len, 2])
+        self.question_em_indicator = tf.placeholder(tf.float32, shape=[None, self.FLAGS.question_len, 2])
         self.context_ids = tf.placeholder(tf.int32, shape=[None, self.FLAGS.context_len])
         self.context_mask = tf.placeholder(tf.int32, shape=[None, self.FLAGS.context_len])
         self.qn_ids = tf.placeholder(tf.int32, shape=[None, self.FLAGS.question_len])
@@ -177,10 +177,10 @@ class QAModel(object):
             # using the placeholders self.context_ids and self.qn_ids
             self.context_embs = embedding_ops.embedding_lookup(embedding_matrix, self.context_ids) # shape (batch_size, context_len, embedding_size)
             # append the indicator feature with the context_embs
-            self.context_embs = tf.concat([self.context_embs, self.em_indicator], axis=2)
+            self.context_embs = tf.concat([self.context_embs, self.context_em_indicator], axis=2)
 
             self.qn_embs = embedding_ops.embedding_lookup(embedding_matrix, self.qn_ids) # shape (batch_size, question_len, embedding_size)
-            self.qn_embs = tf.concat([self.qn_embs, self.em_padding], axis=2)
+            self.qn_embs = tf.concat([self.qn_embs, self.question_em_indicator], axis=2)
 
     def build_graph(self, options):
         """Builds the main part of the graph for the model, starting from the input embeddings to the final distributions for the answer span.
@@ -275,8 +275,8 @@ class QAModel(object):
         """
         # Match up our input data with the placeholders
         input_feed = {}
-        input_feed[self.em_indicator] = batch.em_indicator
-        input_feed[self.em_padding] = batch.em_padding
+        input_feed[self.context_em_indicator] = batch.context_em_indicator
+        input_feed[self.question_em_indicator] = batch.question_em_indicator
         input_feed[self.context_ids] = batch.context_ids
         input_feed[self.context_mask] = batch.context_mask
         input_feed[self.qn_ids] = batch.qn_ids
@@ -309,8 +309,8 @@ class QAModel(object):
         """
 
         input_feed = {}
-        input_feed[self.em_indicator] = batch.em_indicator
-        input_feed[self.em_padding] = batch.em_padding
+        input_feed[self.context_em_indicator] = batch.context_em_indicator
+        input_feed[self.question_em_indicator] = batch.question_em_indicator
         input_feed[self.context_ids] = batch.context_ids
         input_feed[self.context_mask] = batch.context_mask
         input_feed[self.qn_ids] = batch.qn_ids
@@ -337,8 +337,8 @@ class QAModel(object):
           probdist_start and probdist_end: both shape (batch_size, context_len)
         """
         input_feed = {}
-        input_feed[self.em_indicator] = batch.em_indicator
-        input_feed[self.em_padding] = batch.em_padding
+        input_feed[self.context_em_indicator] = batch.context_em_indicator
+        input_feed[self.question_em_indicator] = batch.question_em_indicator
         input_feed[self.context_ids] = batch.context_ids
         input_feed[self.context_mask] = batch.context_mask
         input_feed[self.qn_ids] = batch.qn_ids
