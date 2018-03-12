@@ -68,6 +68,10 @@ class QAModel(object):
             'encoder': 'lstm',
             'attention': Coattention
         },
+        'coattention_emf': {
+            'encoder': 'lstm',
+            'attention': Coattention
+        },
         'co_rnet': {
             'encoder': 'lstm',
             'attention': Coattention
