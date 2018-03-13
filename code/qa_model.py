@@ -28,6 +28,7 @@ import tensorflow as tf
 from tensorflow.python.ops import variable_scope as vs
 from tensorflow.python.ops import embedding_ops
 
+from vocab import GloveParser
 from evaluate import exact_match_score, f1_score
 from data_batcher import get_batch_generator
 from pretty_print import print_example
@@ -43,11 +44,15 @@ class QAModel(object):
     """Top-level Question Answering module"""
 
     experiment_hsh = {
+        'baseline': {
+            'encoder': 'gru',
+            'attention': BasicAttn
+        },
         'baseline_emf2': {
             'encoder': 'gru',
             'attention': BasicAttn
         },
-        'baseline_new': {
+        'baseline_better_pred': {
             'encoder': 'gru',
             'attention': BasicAttn
         },
@@ -122,6 +127,8 @@ class QAModel(object):
         with tf.variable_scope("QAModel", initializer=tf.contrib.layers.variance_scaling_initializer(factor=1.0, uniform=True)):
             self.add_placeholders()
             self.add_embedding_layer(emb_matrix)
+            self.concat_em_indicators()
+            self.add_query_key_word_layer()
             self.build_graph(self.experiment_hsh[self.FLAGS.experiment_name])
             self.add_loss()
 
@@ -153,6 +160,7 @@ class QAModel(object):
         # allows you to run the same model with variable batch_size
         self.context_em_indicator = tf.placeholder(tf.float32, shape=[None, self.FLAGS.context_len, 2])
         self.question_em_indicator = tf.placeholder(tf.float32, shape=[None, self.FLAGS.question_len, 2])
+        self.key_word_embed = tf.placeholder(tf.float32, shape=[None, 7*self.FLAGS.embedding_size])
         self.context_ids = tf.placeholder(tf.int32, shape=[None, self.FLAGS.context_len])
         self.context_mask = tf.placeholder(tf.int32, shape=[None, self.FLAGS.context_len])
         self.qn_ids = tf.placeholder(tf.int32, shape=[None, self.FLAGS.question_len])
@@ -181,9 +189,23 @@ class QAModel(object):
             # using the placeholders self.context_ids and self.qn_ids
             self.context_embs = embedding_ops.embedding_lookup(embedding_matrix, self.context_ids) # shape (batch_size, context_len, embedding_size)
             # append the indicator feature with the context_embs
-            self.context_embs = tf.concat([self.context_embs, self.context_em_indicator], axis=2)
-
             self.qn_embs = embedding_ops.embedding_lookup(embedding_matrix, self.qn_ids) # shape (batch_size, question_len, embedding_size)
+
+    def add_query_key_word_layer(self):
+        """
+        add a simple feedforward network and append to question embeddings for 7 key query words for different
+        kinds of query
+        """
+        with vs.variable_scope("key_word_emb"):
+            batch_size = tf.shape(self.qn_embs)[0]
+            # shape = b x 7*embedding_size
+            to_append = tf.contrib.layers.fully_connected(self.key_word_embed, num_outputs=self.FLAGS.embedding_size+2)
+            to_append = tf.expand_dims(to_append, axis=1)
+            self.qn_embs = tf.concat([self.qn_embs, to_append], axis=1)
+
+    def concat_em_indicators(self):
+        with vs.variable_scope("em_indicator"):
+            self.context_embs = tf.concat([self.context_embs, self.context_em_indicator], axis=2)
             self.qn_embs = tf.concat([self.qn_embs, self.question_em_indicator], axis=2)
 
     def build_graph(self, options):
@@ -281,6 +303,7 @@ class QAModel(object):
         input_feed = {}
         input_feed[self.context_em_indicator] = batch.context_em_indicator
         input_feed[self.question_em_indicator] = batch.question_em_indicator
+        input_feed[self.key_word_embed] = batch.key_word_embed
         input_feed[self.context_ids] = batch.context_ids
         input_feed[self.context_mask] = batch.context_mask
         input_feed[self.qn_ids] = batch.qn_ids
@@ -315,11 +338,13 @@ class QAModel(object):
         input_feed = {}
         input_feed[self.context_em_indicator] = batch.context_em_indicator
         input_feed[self.question_em_indicator] = batch.question_em_indicator
+        input_feed[self.key_word_embed] = batch.key_word_embed
         input_feed[self.context_ids] = batch.context_ids
         input_feed[self.context_mask] = batch.context_mask
         input_feed[self.qn_ids] = batch.qn_ids
         input_feed[self.qn_mask] = batch.qn_mask
         input_feed[self.ans_span] = batch.ans_span
+        input_feed[self.key_word_embed] = GloveParser.key_word_emb
         # note you don't supply keep_prob here, so it will default to 1 i.e. no dropout
 
         output_feed = [self.loss]
@@ -343,10 +368,12 @@ class QAModel(object):
         input_feed = {}
         input_feed[self.context_em_indicator] = batch.context_em_indicator
         input_feed[self.question_em_indicator] = batch.question_em_indicator
+        input_feed[self.key_word_embed] = batch.key_word_embed
         input_feed[self.context_ids] = batch.context_ids
         input_feed[self.context_mask] = batch.context_mask
         input_feed[self.qn_ids] = batch.qn_ids
         input_feed[self.qn_mask] = batch.qn_mask
+        input_feed[self.key_word_embed] = GloveParser.key_word_emb
         # note you don't supply keep_prob here, so it will default to 1 i.e. no dropout
 
         output_feed = [self.probdist_start, self.probdist_end]

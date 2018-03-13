@@ -26,7 +26,7 @@ import logging
 import tensorflow as tf
 
 from qa_model import QAModel
-from vocab import get_glove
+from vocab import GloveParser
 from official_eval_helper import get_json_data, generate_answers
 
 
@@ -123,7 +123,8 @@ def main(unused_argv):
     FLAGS.glove_path = FLAGS.glove_path or os.path.join(DEFAULT_DATA_DIR, "glove.6B.{}d.txt".format(FLAGS.embedding_size))
 
     # Load embedding matrix and vocab mappings
-    emb_matrix, word2id, id2word = get_glove(FLAGS.glove_path, FLAGS.embedding_size)
+    parser = GloveParser()
+    emb_matrix, word2id, id2word = parser.get_glove(FLAGS.glove_path, FLAGS.embedding_size)
 
     # Get filepaths to train/dev datafiles for tokenized queries, contexts and answers
     train_context_path = os.path.join(FLAGS.data_dir, "train.context")
