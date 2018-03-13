@@ -34,12 +34,12 @@ logging.basicConfig(level=logging.INFO)
 
 MAIN_DIR = os.path.relpath(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) # relative path of the main directory
 DEFAULT_DATA_DIR = os.path.join(MAIN_DIR, "data") # relative path of data dir
-EXPERIMENTS_DIR = os.path.join(MAIN_DIR, "experiments") # relative path of experiments dir
 
 
 # High-level options
 tf.app.flags.DEFINE_integer("gpu", 0, "Which GPU to use, if you have multiple.")
 tf.app.flags.DEFINE_string("mode", "train", "Available modes: train / show_examples / official_eval")
+tf.app.flags.DEFINE_string("experiment_dir", "", "Directory of the experiments")
 tf.app.flags.DEFINE_string("experiment_name", "", "Unique name for your experiment. This will create a directory by this name in the experiments/ directory, which will hold all data related to this experiment")
 tf.app.flags.DEFINE_integer("num_epochs", 0, "Number of epochs to train. 0 means train indefinitely")
 
@@ -69,6 +69,7 @@ tf.app.flags.DEFINE_string("json_out_path", "predictions.json", "Output path for
 
 
 FLAGS = tf.app.flags.FLAGS
+EXPERIMENTS_DIR = os.path.join(MAIN_DIR, FLAGS.experiment_dir or "experiments") # relative path of experiments dir
 os.environ["CUDA_VISIBLE_DEVICES"] = str(FLAGS.gpu)
 
 

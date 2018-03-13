@@ -76,7 +76,7 @@ def refill_batches(batches, word2id, qn_uuid_data, context_token_data, qn_token_
             context_ids = context_ids[:context_len]
 
         # Add to list of examples
-        examples.append((qn_uuid, context_tokens, context_ids, qn_ids))
+        examples.append((qn_uuid, context_tokens, context_ids, qn_ids, qn_tokens))
 
         # Stop if you've got a batch
         if len(examples) == batch_size:
@@ -87,9 +87,9 @@ def refill_batches(batches, word2id, qn_uuid_data, context_token_data, qn_token_
 
     # Make into batches
     for batch_start in xrange(0, len(examples), batch_size):
-        uuids_batch, context_tokens_batch, context_ids_batch, qn_ids_batch = zip(*examples[batch_start:batch_start + batch_size])
+        uuids_batch, context_tokens_batch, context_ids_batch, qn_ids_batch, qn_tokens_batch = zip(*examples[batch_start:batch_start + batch_size])
 
-        batches.append((uuids_batch, context_tokens_batch, context_ids_batch, qn_ids_batch))
+        batches.append((uuids_batch, context_tokens_batch, context_ids_batch, qn_ids_batch, qn_tokens_batch))
 
     return
 
@@ -119,7 +119,7 @@ def get_batch_generator(word2id, qn_uuid_data, context_token_data, qn_token_data
             break
 
         # Get next batch. These are all lists length batch_size
-        (uuids, context_tokens, context_ids, qn_ids) = batches.pop(0)
+        (uuids, context_tokens, context_ids, qn_ids, qn_tokens) = batches.pop(0)
 
         # Pad context_ids and qn_ids
         qn_ids = padded(qn_ids, question_len) # pad questions to length question_len
@@ -133,8 +133,45 @@ def get_batch_generator(word2id, qn_uuid_data, context_token_data, qn_token_data
         context_ids = np.array(context_ids)
         context_mask = (context_ids != PAD_ID).astype(np.int32)
 
+        context_em_indicator = []
+        question_em_indicator = []
+        counter = 0
+        for passage, question in zip(context_tokens, qn_tokens):
+            per_example = []
+            # context_em_indicator
+            for i in range(context_len):
+                if i < len(passage):
+                    token = passage[i]
+                    token_em = []
+                    original = token
+                    lower = token.lower()
+                    token_em.append(1 if original in question else 0)
+                    token_em.append(1 if lower in question else 0)
+                    per_example.append(token_em)
+                else:
+                    per_example.append([0, 0])
+            context_em_indicator.append(per_example)
+
+            per_example = []
+            for i in range(question_len):
+                if i < len(question):
+                    token = question[i]
+                    token_em = []
+                    original = token
+                    lower = token.lower()
+                    token_em.append(1 if original in passage else 0)
+                    token_em.append(1 if lower in passage else 0)
+                    per_example.append(token_em)
+                else:
+                    per_example.append([0, 0])
+            question_em_indicator.append(per_example)
+
+
+        context_em_indicator = np.array(context_em_indicator)
+        question_em_indicator = np.array(question_em_indicator)
+
         # Make into a Batch object
-        batch = Batch(context_ids, context_mask, context_tokens, qn_ids, qn_mask, qn_tokens=None, ans_span=None, ans_tokens=None, uuids=uuids)
+        batch = Batch(context_em_indicator, question_em_indicator, context_ids, context_mask, context_tokens, qn_ids, qn_mask, qn_tokens=None, ans_span=None, ans_tokens=None, uuids=uuids)
 
         yield batch
 
