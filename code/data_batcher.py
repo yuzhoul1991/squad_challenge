@@ -252,7 +252,6 @@ def get_batch_generator(word2id, context_path, qn_path, ans_path, batch_size, co
         context_em_indicator = np.array(context_em_indicator)
         question_em_indicator = np.array(question_em_indicator)
 
-
         # Make into a Batch object
         batch = Batch(context_em_indicator, question_em_indicator, context_ids, context_mask, context_tokens, qn_ids, qn_mask, qn_tokens, ans_span, ans_tokens)
 

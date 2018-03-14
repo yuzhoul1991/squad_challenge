@@ -85,7 +85,11 @@ class QAModel(object):
             'attention': SelfAttention,
             'output_layer': PointerNet
         },
-        'rnet_self_h200': {
+        'rnet_self_emf': {
+            'encoder': 'gru',
+            'attention': SelfAttention
+        },
+        'rnet_self_emf_200b': {
             'encoder': 'gru',
             'attention': SelfAttention
         },
@@ -456,6 +460,7 @@ class QAModel(object):
           F1 and EM: Scalars. The average across the sampled examples.
         """
         logging.info("Calculating F1/EM for %s examples in %s set..." % (str(num_samples) if num_samples != 0 else "all", dataset))
+
 
         f1_total = 0.
         em_total = 0.
