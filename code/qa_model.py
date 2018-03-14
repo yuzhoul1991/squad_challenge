@@ -76,6 +76,10 @@ class QAModel(object):
             'encoder': 'lstm',
             'attention': Coattention
         },
+        'co_rnet_self_emf_100h': {
+            'encoder': 'lstm',
+            'attention': Coattention
+        },
         'rnet_multiplicative': {
             'encoder': 'gru',
             'attention': SelfAttention
