@@ -316,3 +316,91 @@ def generate_answers(session, model, word2id, qn_uuid_data, context_token_data, 
     print "Finished generating answers for dataset."
 
     return uuid2ans
+
+def get_ensemble_start_end_pos(session, models, batch):
+    for model in models:
+        temp_start_dist, temp_end_dist = model.get_prob_dists(session, batch)
+        start_dist += temp_start_dist
+        end_dist += temp_end_dist
+
+    start_dist /= len(models)
+    end_dist /= len(models)
+
+    cut_off_len = 30
+
+    start_pos = []
+    end_pos = []
+    for i in range(len(start_dist)):
+        exp_start_dist = start_dist[i]
+        exp_end_dist = end_dist[i]
+
+        max_prob = 0
+        max_start = max_end = 0
+        for start_idx, end_idx in itertools.product(range(len(exp_start_dist)), range(len(exp_end_dist))):
+            if start_idx <= end_idx <= start_idx + 30:
+                prob = exp_start_dist[start_idx]*exp_end_dist[end_idx]
+                if prob > max_prob:
+                    max_start, max_end = start_idx, end_idx
+                    max_prob = prob
+        start_pos.append(max_start)
+        end_pos.append(max_end)
+
+    return start_pos, end_pos
+
+def generate_ensemble_answers(session, models, word2id, qn_uuid_data, context_token_data, qn_token_data):
+    """
+    Given a model, and a set of (context, question) pairs, each with a unique ID,
+    use the model to generate an answer for each pair, and return a dictionary mapping
+    each unique ID to the generated answer.
+
+    Inputs:
+      session: TensorFlow session
+      model: QAModel
+      word2id: dictionary mapping word (string) to word id (int)
+      qn_uuid_data, context_token_data, qn_token_data: lists
+
+    Outputs:
+      uuid2ans: dictionary mapping uuid (string) to predicted answer (string; detokenized)
+    """
+    uuid2ans = {} # maps uuid to string containing predicted answer
+    data_size = len(qn_uuid_data)
+    num_batches = ((data_size-1) / model.FLAGS.batch_size) + 1
+    batch_num = 0
+    detokenizer = MosesDetokenizer()
+
+    print "Generating answers..."
+
+    for batch in get_batch_generator(word2id, qn_uuid_data, context_token_data, qn_token_data, 50, 500, 30):
+
+        # Get the predicted spans
+        pred_start_batch, pred_end_batch = get_ensemble_start_end_pos(models, batch)
+
+        # Convert pred_start_batch and pred_end_batch to lists length batch_size
+        # pred_start_batch = pred_start_batch.tolist()
+        # pred_end_batch = pred_end_batch.tolist()
+
+        # For each example in the batch:
+        for ex_idx, (pred_start, pred_end) in enumerate(zip(pred_start_batch, pred_end_batch)):
+
+            # Original context tokens (no UNKs or padding) for this example
+            context_tokens = batch.context_tokens[ex_idx] # list of strings
+
+            # Check the predicted span is in range
+            assert pred_start in range(len(context_tokens))
+            assert pred_end in range(len(context_tokens))
+
+            # Predicted answer tokens
+            pred_ans_tokens = context_tokens[pred_start : pred_end +1] # list of strings
+
+            # Detokenize and add to dict
+            uuid = batch.uuids[ex_idx]
+            uuid2ans[uuid] = detokenizer.detokenize(pred_ans_tokens, return_str=True)
+
+        batch_num += 1
+
+        if batch_num % 10 == 0:
+            print "Generated answers for %i/%i batches = %.2f%%" % (batch_num, num_batches, batch_num*100.0/num_batches)
+
+    print "Finished generating answers for dataset."
+
+    return uuid2ans

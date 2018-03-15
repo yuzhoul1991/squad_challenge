@@ -27,7 +27,7 @@ import tensorflow as tf
 
 from qa_model import QAModel
 from vocab import get_glove
-from official_eval_helper import get_json_data, generate_answers
+from official_eval_helper import get_json_data, generate_answers, generate_ensemble_answers
 
 
 logging.basicConfig(level=logging.INFO)
@@ -42,6 +42,9 @@ tf.app.flags.DEFINE_string("mode", "train", "Available modes: train / show_examp
 tf.app.flags.DEFINE_string("experiment_dir", "", "Directory of the experiments")
 tf.app.flags.DEFINE_string("experiment_name", "", "Unique name for your experiment. This will create a directory by this name in the experiments/ directory, which will hold all data related to this experiment")
 tf.app.flags.DEFINE_integer("num_epochs", 0, "Number of epochs to train. 0 means train indefinitely")
+
+# ensemble
+tf.app.flags.DEFINE_boolean("ensemble or not", False, "set to true if ensemble")
 
 # Hyperparameters
 tf.app.flags.DEFINE_float("learning_rate", 0.001, "Learning rate.")
@@ -133,8 +136,20 @@ def main(unused_argv):
     dev_qn_path = os.path.join(FLAGS.data_dir, "dev.question")
     dev_ans_path = os.path.join(FLAGS.data_dir, "dev.span")
 
+
+    # existing_models = [
+    #     "co_rnet_self_emf_100h",
+    #     "coattention_emf",
+    #     "rnet_self_emf"
+    # ]
+    existing_models = [
+        "coattention_emf",
+        "rnet_self_emf",
+        "rnet_self"
+    ]
+
     # Initialize model
-    qa_model = QAModel(FLAGS, id2word, word2id, emb_matrix)
+    models = [ QAModel(FLAGS, id2word, word2id, emb_matrix, name) for name in existing_models ]
 
     # Some GPU settings
     config=tf.ConfigProto()
@@ -170,17 +185,18 @@ def main(unused_argv):
         with tf.Session(config=config) as sess:
 
             # Load best model
-            initialize_model(sess, qa_model, bestmodel_dir, expect_exists=True)
+            for idx, name in enumerate(existing_models):
+                initialize_model(sess, models[idx], os.path.join(EXPERIMENTS_DIR, name, "best_checkpoint"), expect_exists=True)
 
             # Show examples with F1/EM scores
-            _, _ = qa_model.check_f1_em(sess, dev_context_path, dev_qn_path, dev_ans_path, "dev", num_samples=10, print_to_screen=True)
+            # _, _ = qa_model.check_f1_em(sess, dev_context_path, dev_qn_path, dev_ans_path, "dev", num_samples=10, print_to_screen=True)
 
 
     elif FLAGS.mode == "official_eval":
         if FLAGS.json_in_path == "":
             raise Exception("For official_eval mode, you need to specify --json_in_path")
-        if FLAGS.ckpt_load_dir == "":
-            raise Exception("For official_eval mode, you need to specify --ckpt_load_dir")
+        # if FLAGS.ckpt_load_dir == "":
+        #     raise Exception("For official_eval mode, you need to specify --ckpt_load_dir")
 
         # Read the JSON data from file
         qn_uuid_data, context_token_data, qn_token_data = get_json_data(FLAGS.json_in_path)
@@ -188,11 +204,15 @@ def main(unused_argv):
         with tf.Session(config=config) as sess:
 
             # Load model from ckpt_load_dir
-            initialize_model(sess, qa_model, FLAGS.ckpt_load_dir, expect_exists=True)
+            # initialize_model(sess, qa_model, FLAGS.ckpt_load_dir, expect_exists=True)
+            for idx, name in enumerate(existing_models):
+                print("Initializing model ", name)
+                initialize_model(sess, models[idx], os.path.join(EXPERIMENTS_DIR, name, "best_checkpoint"), expect_exists=True)
 
             # Get a predicted answer for each example in the data
             # Return a mapping answers_dict from uuid to answer
-            answers_dict = generate_answers(sess, qa_model, word2id, qn_uuid_data, context_token_data, qn_token_data)
+            # answers_dict = generate_answers(sess, qa_model, word2id, qn_uuid_data, context_token_data, qn_token_data)
+            answers_dict = generate_ensemble_answers(sess, models, word2id, qn_uuid_data, context_token_data, qn_token_data)
 
             # Write the uuid->answer mapping a to json file in root dir
             print "Writing predictions to %s..." % FLAGS.json_out_path
