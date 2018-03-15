@@ -43,7 +43,11 @@ class QAModel(object):
     """Top-level Question Answering module"""
 
     experiment_hsh = {
-        'baseline_emf2': {
+        'baseline': {
+            'encoder': 'gru',
+            'attention': BasicAttn
+        },
+        'baseline_emf': {
             'encoder': 'gru',
             'attention': BasicAttn
         },
@@ -101,6 +105,10 @@ class QAModel(object):
             'encoder': 'gru',
             'attention': SelfAttention
         },
+        'rnet_self_200d': {
+            'encoder': 'gru',
+            'attention': SelfAttention
+        },
         'rnet_self_500c': {
             'encoder': 'gru',
             'attention': SelfAttention
@@ -130,7 +138,7 @@ class QAModel(object):
         with tf.variable_scope("QAModel", initializer=tf.contrib.layers.variance_scaling_initializer(factor=1.0, uniform=True)):
             self.add_placeholders()
             self.add_embedding_layer(emb_matrix)
-            self.build_graph(self.experiment_hsh[self.FLAGS.experiment_name])
+            self.build_graph(self.experiment_hsh[self.FLAGS.experiment_name], self.FLAGS.experiment_name)
             self.add_loss()
 
         # Define trainable parameters, gradient, gradient norm, and clip by gradient norm
@@ -194,7 +202,7 @@ class QAModel(object):
             self.qn_embs = embedding_ops.embedding_lookup(embedding_matrix, self.qn_ids) # shape (batch_size, question_len, embedding_size)
             self.qn_embs = tf.concat([self.qn_embs, self.question_em_indicator], axis=2)
 
-    def build_graph(self, options):
+    def build_graph(self, options, experiment_name):
         """Builds the main part of the graph for the model, starting from the input embeddings to the final distributions for the answer span.
 
         Defines:
@@ -208,31 +216,32 @@ class QAModel(object):
         # Use a RNN to get hidden states for the context and the question
         # Note: here the RNNEncoder is shared (i.e. the weights are the same)
         # between the context and the question.
-        encoder = RNNEncoder(self.FLAGS.hidden_size, self.keep_prob, options['encoder'])
-        context_hiddens = encoder.build_graph(self.context_embs, self.context_mask) # (batch_size, context_len, hidden_size*2)
-        question_hiddens = encoder.build_graph(self.qn_embs, self.qn_mask) # (batch_size, question_len, hidden_size*2)
+        with vs.variable_scope(experiment_name):
+            encoder = RNNEncoder(self.FLAGS.hidden_size, self.keep_prob, options['encoder'])
+            context_hiddens = encoder.build_graph(self.context_embs, self.context_mask) # (batch_size, context_len, hidden_size*2)
+            question_hiddens = encoder.build_graph(self.qn_embs, self.qn_mask) # (batch_size, question_len, hidden_size*2)
 
-        # Use context hidden states to attend to question hidden states
-        attention_class = options['attention']
-        attn_layer = attention_class(75, self.keep_prob)
-        _, attn_output = attn_layer.build_graph(question_hiddens, self.qn_mask, context_hiddens, self.context_mask) # attn_output is shape (batch_size, context_len, hidden_size*2)
+            # Use context hidden states to attend to question hidden states
+            attention_class = options['attention']
+            attn_layer = attention_class(75, self.keep_prob)
+            _, attn_output = attn_layer.build_graph(question_hiddens, self.qn_mask, context_hiddens, self.context_mask) # attn_output is shape (batch_size, context_len, hidden_size*2)
 
-        if 'self' in self.FLAGS.experiment_name:
-            attn = SelfAttention(75, self.keep_prob)
-            _, attn_output = attn.build_graph(attn_output, self.context_mask, attn_output, self.context_mask, 'matching')
+            if 'self' in experiment_name:
+                attn = SelfAttention(75, self.keep_prob)
+                _, attn_output = attn.build_graph(attn_output, self.context_mask, attn_output, self.context_mask, 'matching')
 
-        output_class = options.get('output_layer', BasicOutputLayer)
-        if 'baseline' in self.FLAGS.experiment_name:
-        # # Concat attn_output to context_hiddens to get blended_reps
-            blended_reps = tf.concat([context_hiddens, attn_output], axis=2) # (batch_size, context_len, hidden_size*4)
-        else:
-            blended_reps = attn_output
+            output_class = options.get('output_layer', BasicOutputLayer)
+            if 'baseline' in experiment_name:
+            # # Concat attn_output to context_hiddens to get blended_reps
+                blended_reps = tf.concat([context_hiddens, attn_output], axis=2) # (batch_size, context_len, hidden_size*4)
+            else:
+                blended_reps = attn_output
 
-        output_layer = output_class(self.FLAGS.hidden_size, self.keep_prob)
-        if output_class == BasicOutputLayer:
-            self.logits_start, self.logits_end, self.probdist_start, self.probdist_end = output_layer.build_graph(blended_reps, self.context_mask)
-        else:
-            self.logits_start, self.logits_end, self.probdist_start, self.probdist_end = output_layer.build_graph(blended_reps, self.context_mask, self.ans_span, question_hiddens, self.qn_mask)
+            output_layer = output_class(self.FLAGS.hidden_size, self.keep_prob)
+            if output_class == BasicOutputLayer:
+                self.logits_start, self.logits_end, self.probdist_start, self.probdist_end = output_layer.build_graph(blended_reps, self.context_mask)
+            else:
+                self.logits_start, self.logits_end, self.probdist_start, self.probdist_end = output_layer.build_graph(blended_reps, self.context_mask, self.ans_span, question_hiddens, self.qn_mask)
 
     def add_loss(self):
         """
