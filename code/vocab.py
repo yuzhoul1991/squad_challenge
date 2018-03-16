@@ -100,6 +100,8 @@ class GloveParser(object):
         assert idx == final_vocab_size
 
         with vs.variable_scope("key_word_embedding"):
+            # init = tf.constant_initializer(np.array(GloveParser.key_word_emb))
+            # GloveParser.key_word_emb_var = tf.get_variable("key_word_emb", shape=[len(GloveParser.key_words), glove_dim], initializer=init)
             GloveParser.key_word_emb_var = tf.get_variable("key_word_emb", initializer=GloveParser.key_word_emb)
 
         return emb_matrix, word2id, id2word
