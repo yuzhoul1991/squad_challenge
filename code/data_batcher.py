@@ -247,7 +247,6 @@ def get_batch_generator(word2id, context_path, qn_path, ans_path, batch_size, co
                         index = GloveParser.key_words.index(lower)
                         new_index = original_size + index
                         qn_ids[counter][i] = new_index
-
                     token_em.append(1 if original in passage else 0)
                     token_em.append(1 if lower in passage else 0)
                     per_example.append(token_em)
@@ -256,10 +255,8 @@ def get_batch_generator(word2id, context_path, qn_path, ans_path, batch_size, co
             question_em_indicator.append(per_example)
             counter += 1
 
-
         context_em_indicator = np.array(context_em_indicator)
         question_em_indicator = np.array(question_em_indicator)
-        true_batch_size = context_em_indicator.shape[0]
 
         # Make into a Batch object
         batch = Batch(context_em_indicator, question_em_indicator, context_ids, context_mask, context_tokens, qn_ids, qn_mask, qn_tokens, ans_span, ans_tokens)

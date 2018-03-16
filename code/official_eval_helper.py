@@ -171,7 +171,7 @@ def get_batch_generator(word2id, qn_uuid_data, context_token_data, qn_token_data
                 else:
                     per_example.append([0, 0])
             question_em_indicator.append(per_example)
-
+            counter += 1
 
         context_em_indicator = np.array(context_em_indicator)
         question_em_indicator = np.array(question_em_indicator)
