@@ -68,6 +68,14 @@ class QAModel(object):
             'encoder': 'lstm',
             'attention': BasicAttn
         },
+        'bidaf_attention_300b': {
+            'encoder': 'lstm',
+            'attention': BidirectionalAttention
+        },
+        'bidaf_attention_drop35': {
+            'encoder': 'lstm',
+            'attention': BidirectionalAttention
+        },
         'bidaf_emf': {
             'encoder': 'lstm',
             'attention': BidirectionalAttention,
