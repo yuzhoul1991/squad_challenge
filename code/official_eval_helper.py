@@ -159,6 +159,10 @@ def get_batch_generator(word2id, qn_uuid_data, context_token_data, qn_token_data
                     token_em = []
                     original = token
                     lower = token.lower()
+                    if lower in GloveParser.key_words:
+                        index = GloveParser.key_words.index(lower)
+                        new_index = original_size + index
+                        qn_ids[counter][i] = new_index
                     token_em.append(1 if original in passage else 0)
                     token_em.append(1 if lower in passage else 0)
                     per_example.append(token_em)
