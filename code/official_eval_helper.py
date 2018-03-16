@@ -20,6 +20,7 @@ from __future__ import absolute_import
 from __future__ import division
 
 import os
+import itertools
 from tqdm import tqdm
 import numpy as np
 from six.moves import xrange
@@ -318,10 +319,14 @@ def generate_answers(session, model, word2id, qn_uuid_data, context_token_data, 
     return uuid2ans
 
 def get_ensemble_start_end_pos(session, models, batch):
-    for model in models:
+    for idx, model in enumerate(models):
         temp_start_dist, temp_end_dist = model.get_prob_dists(session, batch)
-        start_dist += temp_start_dist
-        end_dist += temp_end_dist
+        if idx == 0:
+            start_dist = temp_start_dist
+            end_dist = temp_end_dist
+        else:
+            start_dist += temp_start_dist
+            end_dist += temp_end_dist
 
     start_dist /= len(models)
     end_dist /= len(models)
@@ -364,7 +369,7 @@ def generate_ensemble_answers(session, models, word2id, qn_uuid_data, context_to
     """
     uuid2ans = {} # maps uuid to string containing predicted answer
     data_size = len(qn_uuid_data)
-    num_batches = ((data_size-1) / model.FLAGS.batch_size) + 1
+    num_batches = ((data_size-1) / models[0].FLAGS.batch_size) + 1
     batch_num = 0
     detokenizer = MosesDetokenizer()
 
@@ -373,7 +378,7 @@ def generate_ensemble_answers(session, models, word2id, qn_uuid_data, context_to
     for batch in get_batch_generator(word2id, qn_uuid_data, context_token_data, qn_token_data, 50, 500, 30):
 
         # Get the predicted spans
-        pred_start_batch, pred_end_batch = get_ensemble_start_end_pos(models, batch)
+        pred_start_batch, pred_end_batch = get_ensemble_start_end_pos(session, models, batch)
 
         # Convert pred_start_batch and pred_end_batch to lists length batch_size
         # pred_start_batch = pred_start_batch.tolist()

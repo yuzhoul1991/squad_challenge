@@ -76,6 +76,10 @@ class QAModel(object):
             'encoder': 'lstm',
             'attention': Coattention
         },
+        'co_rnet_self_emf_100h': {
+            'encoder': 'lstm',
+            'attention': Coattention
+        },
         'co_rnet_self_emf_300b_drop25': {
             'encoder': 'lstm',
             'attention': Coattention
@@ -205,6 +209,7 @@ class QAModel(object):
             These are the result of taking (masked) softmax of logits_start and logits_end.
         """
 
+        import pdb; pdb.set_trace()
         # Use a RNN to get hidden states for the context and the question
         # Note: here the RNNEncoder is shared (i.e. the weights are the same)
         # between the context and the question.
