@@ -106,6 +106,10 @@ class QAModel(object):
             'encoder': 'gru',
             'attention': SelfAttention
         },
+        'rnet_self_emf_key': {
+            'encoder': 'gru',
+            'attention': SelfAttention
+        },
         'rnet_self_emf_200b': {
             'encoder': 'gru',
             'attention': SelfAttention
