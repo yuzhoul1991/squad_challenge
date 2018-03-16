@@ -68,7 +68,7 @@ class QAModel(object):
             'encoder': 'lstm',
             'attention': BasicAttn
         },
-        'bidaf': {
+        'bidaf_emf': {
             'encoder': 'lstm',
             'attention': BidirectionalAttention,
             'output_layer': BidafOutputLayer
@@ -248,10 +248,10 @@ class QAModel(object):
             blended_reps = attn_output
 
         output_layer = output_class(self.FLAGS.hidden_size, self.keep_prob)
-        if output_class == BasicOutputLayer:
-            self.logits_start, self.logits_end, self.probdist_start, self.probdist_end = output_layer.build_graph(blended_reps, self.context_mask)
-        else:
+        if output_class == PointerNet:
             self.logits_start, self.logits_end, self.probdist_start, self.probdist_end = output_layer.build_graph(blended_reps, self.context_mask, self.ans_span, question_hiddens, self.qn_mask)
+        else:
+            self.logits_start, self.logits_end, self.probdist_start, self.probdist_end = output_layer.build_graph(blended_reps, self.context_mask)
 
     def add_loss(self):
         """
