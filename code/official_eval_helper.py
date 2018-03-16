@@ -111,6 +111,9 @@ def get_batch_generator(word2id, qn_uuid_data, context_token_data, qn_token_data
     """
     batches = []
 
+    vocab_size = int(4e5) # this is the vocab size of the corpus we've downloaded
+    original_size = vocab_size + 2
+
     while True:
         if len(batches) == 0:
             refill_batches(batches, word2id, qn_uuid_data, context_token_data, qn_token_data, batch_size, context_len, question_len)
