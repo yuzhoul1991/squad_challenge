@@ -80,7 +80,11 @@ class QAModel(object):
             'encoder': 'lstm',
             'attention': Coattention
         },
-        'co_rnet_self_emf_300b_drop25': {
+        'co_rnet_self_emf_100h': {
+            'encoder': 'lstm',
+            'attention': Coattention
+        },
+        'co_rnet_self_emf_75h': {
             'encoder': 'lstm',
             'attention': Coattention
         },
