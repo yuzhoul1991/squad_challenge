@@ -44,14 +44,14 @@ class Coattention(object):
             question_mask = tf.concat([question_mask, spare_mask], 1)
             context_mask = tf.concat([context_mask, spare_mask], 1)
 
-            c_sentinel = tf.get_variable("c_sentinel", shape=[1, d])
-            q_sentinel = tf.get_variable("q_sentinel", shape=[1, d])
+            c_sentinel = tf.get_variable("c_sentinel", shape=[1, d], initializer=tf.contrib.layers.xavier_initializer())
+            q_sentinel = tf.get_variable("q_sentinel", shape=[1, d], initializer=tf.contrib.layers.xavier_initializer())
 
             Q = tf.concat([question_hiddens, tf.tile(tf.expand_dims(q_sentinel, axis=0), [batch_size, 1, 1])], 1) # shape b x M+1 x 2h
             C = tf.concat([context_hiddens, tf.tile(tf.expand_dims(c_sentinel, axis=0), [batch_size, 1, 1])], 1) # shape b x N+1 x 2h
 
-            w_proj = tf.get_variable("w_proj", shape=[M+1, M+1])
-            b = tf.get_variable("b", shape=[1, M + 1])
+            w_proj = tf.get_variable("w_proj", shape=[M+1, M+1], initializer=tf.contrib.layers.xavier_initializer())
+            b = tf.get_variable("b", shape=[1, M + 1], initializer=tf.contrib.layers.xavier_initializer())
             Q_t = tf.transpose(Q, perm=[0, 2, 1])   # shape b x 2h x M+1
             Q_t = tf.reshape(Q_t, [-1, M+1])
             wq = tf.reshape(tf.matmul(Q_t, w_proj) + b, [-1, d, M+1])

@@ -46,14 +46,14 @@ class BidirectionalAttention(object):
             # S_ij = w_sim^T [c_i;q_j;c_i o q_j]
 
             # 1. compute w x C
-            W1 = tf.get_variable("w_sim_1", shape=[h, 1])
+            W1 = tf.get_variable("w_sim_1", shape=[h, 1], initializer=tf.contrib.layers.xavier_initializer())
             C = tf.expand_dims(context_hiddens, axis=2)    # shape = b x N x 1 x h
             C = tf.reshape(C, [-1, h])
             S1 = tf.matmul(C, W1)
             S1 = tf.reshape(S1, [-1, N, 1]) # shape = b x N x 1
 
             # 2. compute w x Q
-            W2 = tf.get_variable("w_sim_2", shape=[h, 1])
+            W2 = tf.get_variable("w_sim_2", shape=[h, 1], initializer=tf.contrib.layers.xavier_initializer())
             Q = tf.expand_dims(question_hiddens, axis=1)   # shape = b x 1 x M x h
             Q = tf.reshape(Q, [-1, h])
             S2 = tf.matmul(Q, W2)
@@ -61,7 +61,7 @@ class BidirectionalAttention(object):
 
             # 2. generate c_i o q_j in matrix form
             # Use broadcasting tf.multiply([b, M, 1, h], [b, 1, N, h]) == [b, M, N, h]
-            W3 = tf.get_variable("w_sim_3", shape=[h, 1])
+            W3 = tf.get_variable("w_sim_3", shape=[h, 1], initializer=tf.contrib.layers.xavier_initializer())
             C_o_Q = tf.multiply(tf.expand_dims(context_hiddens, axis=1), tf.expand_dims(question_hiddens, axis=2)) # shape = b x N x M x h
             C_o_Q = tf.reshape(C_o_Q, [-1, h])
             S3 = tf.matmul(C_o_Q, W3)
@@ -114,14 +114,14 @@ class BidafOutputLayer(object):
 
 
         with vs.variable_scope("start"):
-            w_p1 = tf.get_variable("w_p1", shape=[h, 1])
+            w_p1 = tf.get_variable("w_p1", shape=[h, 1], initializer=tf.contrib.layers.xavier_initializer())
             temp_start = tf.matmul(tf.reshape(tf.concat([G, M], axis=2), [-1, h]), w_p1)
             temp_start = tf.reshape(temp_start, [-1, N])
             logits_start, probdist_start = masked_softmax(temp_start, mask, 1)
 
 
         with vs.variable_scope("end"):
-            w_p2 = tf.get_variable("w_p2", shape=[h, 1])
+            w_p2 = tf.get_variable("w_p2", shape=[h, 1], initializer=tf.contrib.layers.xavier_initializer())
             biLSTM = RNNEncoder(h/2, self.keep_prob, 'lstm')
             M_2 = biLSTM.build_graph(M, mask, 'bilstm')
             temp_end = tf.matmul(tf.reshape(tf.concat([G, M_2], axis=2), [-1, h]), w_p2)
