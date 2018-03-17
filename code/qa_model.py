@@ -97,6 +97,10 @@ class QAModel(object):
             'encoder': 'lstm',
             'attention': Coattention
         },
+        'co_rnet_self_emf_all_150h_gru_300b': {
+            'encoder': 'gru',
+            'attention': Coattention
+        },
         'co_rnet_self_emf_75h': {
             'encoder': 'lstm',
             'attention': Coattention
@@ -111,6 +115,10 @@ class QAModel(object):
             'output_layer': PointerNet
         },
         'rnet_self_emf': {
+            'encoder': 'gru',
+            'attention': SelfAttention
+        },
+        'rnet_self_emf_100h_300b': {
             'encoder': 'gru',
             'attention': SelfAttention
         },
