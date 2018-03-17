@@ -75,6 +75,6 @@ class SelfAttention(object):
         with vs.variable_scope(scope):
             d = input.shape.as_list()[-1]
             original_size = input.shape.as_list()[1]
-            W = tf.get_variable("W", shape=[d, hidden_size])
+            W = tf.get_variable("W", shape=[d, hidden_size], initializer=tf.contrib.layers.xavier_initializer())
             input_ = tf.reshape(input, [-1, d])
             return tf.reshape(tf.matmul(input_, W), [-1, original_size, hidden_size])   # shape = b x original_size x hidden_size

@@ -24,7 +24,7 @@ import re
 
 import numpy as np
 from six.moves import xrange
-from vocab import PAD_ID, UNK_ID
+from vocab import PAD_ID, UNK_ID, GloveParser
 
 
 class Batch(object):
@@ -214,6 +214,8 @@ def get_batch_generator(word2id, context_path, qn_path, ans_path, batch_size, co
         # Make ans_span into a np array
         ans_span = np.array(ans_span) # shape (batch_size, 2)
 
+        vocab_size = int(4e5) # this is the vocab size of the corpus we've downloaded
+        original_size = vocab_size + 2
 
         context_em_indicator = []
         question_em_indicator = []
@@ -241,13 +243,17 @@ def get_batch_generator(word2id, context_path, qn_path, ans_path, batch_size, co
                     token_em = []
                     original = token
                     lower = token.lower()
+                    if lower in GloveParser.key_words:
+                        index = GloveParser.key_words.index(lower)
+                        new_index = original_size + index
+                        qn_ids[counter][i] = new_index
                     token_em.append(1 if original in passage else 0)
                     token_em.append(1 if lower in passage else 0)
                     per_example.append(token_em)
                 else:
                     per_example.append([0, 0])
             question_em_indicator.append(per_example)
-
+            counter += 1
 
         context_em_indicator = np.array(context_em_indicator)
         question_em_indicator = np.array(question_em_indicator)

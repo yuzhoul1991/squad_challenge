@@ -27,9 +27,8 @@ from six.moves import xrange
 from nltk.tokenize.moses import MosesDetokenizer
 
 from preprocessing.squad_preprocess import data_from_json, tokenize
-from vocab import UNK_ID, PAD_ID
+from vocab import UNK_ID, PAD_ID, GloveParser
 from data_batcher import padded, Batch
-
 
 
 def readnext(x):
@@ -113,6 +112,9 @@ def get_batch_generator(word2id, qn_uuid_data, context_token_data, qn_token_data
     """
     batches = []
 
+    vocab_size = int(4e5) # this is the vocab size of the corpus we've downloaded
+    original_size = vocab_size + 2
+
     while True:
         if len(batches) == 0:
             refill_batches(batches, word2id, qn_uuid_data, context_token_data, qn_token_data, batch_size, context_len, question_len)
@@ -160,13 +162,17 @@ def get_batch_generator(word2id, qn_uuid_data, context_token_data, qn_token_data
                     token_em = []
                     original = token
                     lower = token.lower()
+                    if lower in GloveParser.key_words:
+                        index = GloveParser.key_words.index(lower)
+                        new_index = original_size + index
+                        qn_ids[counter][i] = new_index
                     token_em.append(1 if original in passage else 0)
                     token_em.append(1 if lower in passage else 0)
                     per_example.append(token_em)
                 else:
                     per_example.append([0, 0])
             question_em_indicator.append(per_example)
-
+            counter += 1
 
         context_em_indicator = np.array(context_em_indicator)
         question_em_indicator = np.array(question_em_indicator)
