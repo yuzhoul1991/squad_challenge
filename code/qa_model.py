@@ -89,12 +89,20 @@ class QAModel(object):
             'encoder': 'lstm',
             'attention': Coattention
         },
+        'coattention_emf_100h_gru': {
+            'encoder': 'gru',
+            'attention': Coattention
+        },
         'co_rnet_self_emf': {
             'encoder': 'lstm',
             'attention': Coattention
         },
-        'co_rnet_self_emf_100h': {
-            'encoder': 'lstm',
+        'co_rnet_self_emf_all_100h_gru': {
+            'encoder': 'gru',
+            'attention': Coattention
+        },
+        'co_rnet_self_emf_all_150h_gru': {
+            'encoder': 'gru',
             'attention': Coattention
         },
         'co_rnet_self_emf_all_150h_gru_300b': {
@@ -109,10 +117,9 @@ class QAModel(object):
             'encoder': 'gru',
             'attention': SelfAttention
         },
-        'rnet_self_ptr': {
+        'rnet_self_xavier': {
             'encoder': 'gru',
-            'attention': SelfAttention,
-            'output_layer': PointerNet
+            'attention': SelfAttention
         },
         'rnet_self_emf': {
             'encoder': 'gru',
@@ -249,11 +256,11 @@ class QAModel(object):
 
         # Use context hidden states to attend to question hidden states
         attention_class = options['attention']
-        attn_layer = attention_class(75, self.keep_prob)
+        attn_layer = attention_class(self.FLAGS.hidden_size, self.keep_prob)
         _, attn_output = attn_layer.build_graph(question_hiddens, self.qn_mask, context_hiddens, self.context_mask) # attn_output is shape (batch_size, context_len, hidden_size*2)
 
         if 'self' in experiment_name:
-            attn = SelfAttention(75, self.keep_prob)
+            attn = SelfAttention(self.FLAGS.hidden_size, self.keep_prob)
             _, attn_output = attn.build_graph(attn_output, self.context_mask, attn_output, self.context_mask, 'matching')
 
         output_class = options.get('output_layer', BasicOutputLayer)
