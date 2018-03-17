@@ -98,8 +98,7 @@ class BidirectionalAttention(object):
                 # Already applied dropout in RNNEncoder.build_graph
                 M = biLSTM.build_graph(M, context_mask, "BiLSTM2")   # shape = b x N x h
 
-            output = [G, M]
-            return None, output
+            return None, M
 
 class BidafOutputLayer(object):
     def __init__(self, hidden_size, keep_prob):
