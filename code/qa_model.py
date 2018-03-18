@@ -68,6 +68,10 @@ class QAModel(object):
             'encoder': 'lstm',
             'attention': BasicAttn
         },
+        'bidaf_attention': {
+            'encoder': 'lstm',
+            'attention': BidirectionalAttention
+        },
         'bidaf_attention_300b': {
             'encoder': 'lstm',
             'attention': BidirectionalAttention
@@ -129,7 +133,7 @@ class QAModel(object):
             'encoder': 'gru',
             'attention': SelfAttention
         },
-        'rnet_self_emf_200b': {
+        'rnet_self_emf_key': {
             'encoder': 'gru',
             'attention': SelfAttention
         },
