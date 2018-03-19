@@ -51,7 +51,38 @@ def metric_max_over_ground_truths(metric_fn, prediction, ground_truths):
     return max(scores_for_ground_truths)
 
 
+em = {
+    'what': 0,
+    'how': 0,
+    'who': 0,
+    'when': 0,
+    'which': 0,
+    'where': 0,
+    'why': 0,
+}
+
+f1_c = {
+    'what': 0,
+    'how': 0,
+    'who': 0,
+    'when': 0,
+    'which': 0,
+    'where': 0,
+    'why': 0,
+}
+
+count = {
+    'what': 0,
+    'how': 0,
+    'who': 0,
+    'when': 0,
+    'which': 0,
+    'where': 0,
+    'why': 0,
+}
 def evaluate(dataset, predictions):
+    global em
+    global f1_c
     f1 = exact_match = total = 0
     for article in dataset:
         for paragraph in article['paragraphs']:
@@ -64,10 +95,30 @@ def evaluate(dataset, predictions):
                     continue
                 ground_truths = list(map(lambda x: x['text'], qa['answers']))
                 prediction = predictions[qa['id']]
-                exact_match += metric_max_over_ground_truths(
+                lower_qa = [x.lower() for x in qa['question'].split()]
+                em_score = metric_max_over_ground_truths(
                     exact_match_score, prediction, ground_truths)
-                f1 += metric_max_over_ground_truths(
+                f1_s = metric_max_over_ground_truths(
                     f1_score, prediction, ground_truths)
+                for word in lower_qa:
+                    if word in em.keys():
+                        em[word] += em_score
+                        f1_c[word] += f1_s
+                        count[word] += 1
+                        break
+                exact_match += em_score
+                f1 += f1_s
+    em = {k: 100.0 * v/count[k] for k, v in em.items()}
+    f1_c = {k: 100.0 * v/count[k] for k, v in f1_c.items()}
+
+    print("em per query category")
+    print(em)
+    print("\n")
+    print("f1 per query category")
+    print(f1_c)
+    print("\n")
+    print("counts")
+    print(count)
 
     exact_match = 100.0 * exact_match / total
     f1 = 100.0 * f1 / total
