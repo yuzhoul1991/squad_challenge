@@ -100,25 +100,25 @@ def evaluate(dataset, predictions):
                     exact_match_score, prediction, ground_truths)
                 f1_s = metric_max_over_ground_truths(
                     f1_score, prediction, ground_truths)
-                for word in lower_qa:
-                    if word in em.keys():
-                        em[word] += em_score
-                        f1_c[word] += f1_s
-                        count[word] += 1
-                        break
+                # for word in lower_qa:
+                #     if word in em.keys():
+                #         em[word] += em_score
+                #         f1_c[word] += f1_s
+                #         count[word] += 1
+                #         break
                 exact_match += em_score
                 f1 += f1_s
-    em = {k: 100.0 * v/count[k] for k, v in em.items()}
-    f1_c = {k: 100.0 * v/count[k] for k, v in f1_c.items()}
-
-    print("em per query category")
-    print(em)
-    print("\n")
-    print("f1 per query category")
-    print(f1_c)
-    print("\n")
-    print("counts")
-    print(count)
+    # em = {k: 100.0 * v/count[k] for k, v in em.items()}
+    # f1_c = {k: 100.0 * v/count[k] for k, v in f1_c.items()}
+    #
+    # print("em per query category")
+    # print(em)
+    # print("\n")
+    # print("f1 per query category")
+    # print(f1_c)
+    # print("\n")
+    # print("counts")
+    # print(count)
 
     exact_match = 100.0 * exact_match / total
     f1 = 100.0 * f1 / total
