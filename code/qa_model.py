@@ -101,6 +101,10 @@ class QAModel(object):
             'encoder': 'gru',
             'attention': Coattention
         },
+        'co_rnet_self_emf_all_100h_gru_300b': {
+            'encoder': 'gru',
+            'attention': Coattention
+        },
         'co_rnet_self_emf_all_150h_gru': {
             'encoder': 'gru',
             'attention': Coattention
